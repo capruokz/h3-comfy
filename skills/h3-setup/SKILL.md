@@ -64,8 +64,17 @@ bash setup.sh                      # ตรวจ → โหลด → node → 
 
 จบแค่นี้ เจนได้เลย **`find_ceiling.py` เป็นของเสริม ไม่ต้องรัน** (ดูหัวข้อเพดานเฟรมข้างล่าง)
 
-**Windows ไม่มี `install_comfy.sh`** ให้โหลด ComfyUI portable จากหน้า release ของเขา
-แตกไฟล์ รันหนึ่งครั้ง แล้วค่อยมาต่อที่ `setup.sh`
+**Windows ใช้คนละชุด** — `setup.sh` รันบน Windows ไม่ได้เลย เพราะ `comfy_env.sh`
+อ่านจาก `/proc` เพื่อหาโปรเซสที่รันอยู่
+
+```powershell
+python precheck.py
+powershell -ExecutionPolicy Bypass -File install_comfy.ps1   # โหลด portable + แตก + เปิด
+$env:HF_TOKEN = "hf_xxxx"
+powershell -ExecutionPolicy Bypass -File setup.ps1
+```
+
+คู่มือจับมือทำอยู่ที่ [guides/04-windows.md](../../guides/04-windows.md)
 
 **ตรวจสแต็กมาก่อนโหลดโดยตั้งใจ** เครื่องที่ตั้งค่าผิดยังเจนคลิปออกมาได้ปกติ ไม่มี error
 แค่ช้ากว่าที่ควรหลายเท่า — ที่บ้านเคยเสียไปครึ่งวันเพราะ SageAttention ยังเป็น 1.0.6
@@ -77,7 +86,9 @@ bash setup.sh                      # ตรวจ → โหลด → node → 
 | สคริปต์ | แก้ปัญหาอะไร |
 |---|---|
 | `precheck.py` | **ตรวจเครื่องเปล่า** ว่าคุ้มที่จะติดตั้งมั้ย ใช้แต่ stdlib + `nvidia-smi` ไม่ต้องมี torch |
-| `install_comfy.sh` | ลง ComfyUI บน Linux ที่ยังไม่มี แล้วเปิดรอ (ลง torch cu130 ก่อน requirements ไม่งั้น pip หยิบล้อผิดมาทับ) |
+| `install_comfy.sh` | ลง ComfyUI บน **Linux** ที่ยังไม่มี แล้วเปิดรอ (ลง torch cu130 ก่อน requirements ไม่งั้น pip หยิบล้อผิดมาทับ) |
+| `install_comfy.ps1` | ฝั่ง **Windows** — ถามหน้า release ว่ารุ่นล่าสุดชื่ออะไร โหลด portable 2 GB แตกด้วย `tar` ที่ติดมากับ Windows (ไม่ต้องลง 7-Zip) |
+| `setup.ps1` | ฝั่ง **Windows** ของ `setup.sh` — **ต้องใช้ Python API โหลดโมเดล ไม่ใช่คำสั่ง `hf`** เพราะ embedded python ของ portable ไม่มีโมดูล `venv` แล้ว CLI ของ huggingface_hub ตายตั้งแต่ import |
 | `check_stack.py` | ยืนยันว่าเป็น cu130 + SageAttention ≥2.2 ก่อนจ่ายค่าโหลด |
 | `comfy_env.sh` | **หา ComfyUI ตัวที่รันอยู่จริง** เทมเพลต vast มีสองชุดบนดิสก์ ตัวที่ `[ -d ]` เจอก่อนไม่ใช่ตัวที่ให้บริการ เคยทำให้ 38 GB ลงผิดที่ |
 | `setup.sh` | โหลดโมเดล + clone node ที่ล็อกคอมมิต + แพตช์ + restart |

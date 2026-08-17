@@ -111,8 +111,13 @@ if not too_old:
             "รุ่น 1.x ไม่มี path ของ Blackwell เลย --use-sage-attention จะแอบวิ่งทางเก่า "
             "และช้าลงโดยไม่ฟ้อง — รัน  bash setup.sh --fix")
     except Exception:
-        row("SageAttention", "ยังไม่ได้ติดตั้ง", "FAIL",
-            "รัน  bash setup.sh --fix  (ใช้เวลา build ราว 5-10 นาที)")
+        # ไม่มี = ช้าลง ไม่ใช่พัง จึงเป็น WARN ไม่ใช่ FAIL
+        # (ต่างจากกรณีมี 1.x อยู่บน Blackwell ซึ่งแย่กว่าไม่มี เพราะมันแอบวิ่งทางเก่า)
+        # บน Windows portable ไม่มีมาให้ และ build เองต้องใช้ MSVC ซึ่งส่วนใหญ่ไม่มี
+        # ถ้าตรงนี้เป็น FAIL คนใช้ Windows จะตันตั้งแต่ด่านแรกทั้งที่ของยังใช้ได้
+        row("SageAttention", "ยังไม่ได้ติดตั้ง", "WARN",
+            "ไม่มีก็เจนได้ แค่ช้ากว่า -- อยากได้ความเร็วเพิ่ม: bash setup.sh --fix "
+            "(Linux) หรือ pip install sageattention (Windows ต้องมี MSVC)")
 
     for pkg in ("triton", "triton-windows"):
         try:

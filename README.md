@@ -73,7 +73,8 @@ H3 เจนคลิปวิดีโอที่มีทั้งภาพ�
 |---|---|
 | ไม่มีการ์ดจอแรง อยากเช่าเครื่องมาลอง | [คู่มือ 1 — เช่า vast.ai](guides/01-rent-vast.md) |
 | ติดตั้งอยู่ ติดตรงรหัสโหลดโมเดล | [คู่มือ 2 — HF token](guides/02-hf-token.md) |
-| พร้อมติดตั้งแล้ว | [คู่มือ 3 — ติดตั้ง](guides/03-install.md) |
+| พร้อมติดตั้งแล้ว (เครื่องเช่า / Linux) | [คู่มือ 3 — ติดตั้ง](guides/03-install.md) |
+| **มีการ์ด RTX 50 อยู่ในเครื่องแล้ว อยากลงเอง (Windows)** | [คู่มือ 4 — Windows](guides/04-windows.md) |
 | ติดตั้งเสร็จแล้ว อยากเขียน prompt | [skills/h3-prompt](skills/h3-prompt/SKILL.md) |
 | อยากสั่งเจนหลายคลิปต่อกันเป็นเรื่อง | [skills/h3-run](skills/h3-run/SKILL.md) |
 
@@ -109,12 +110,23 @@ H3 เจนคลิปวิดีโอที่มีทั้งภาพ�
 
 ## เริ่มเร็ว (สำหรับคนที่มีเครื่องพร้อมแล้ว)
 
+**Linux / เครื่องเช่า**
 ```bash
 git clone https://github.com/capruokz/h3-comfy && cd h3-comfy/skills/h3-setup/scripts
 python3 precheck.py            # เครื่องนี้ไหวมั้ย
-bash install_comfy.sh          # ข้ามได้ถ้ามี ComfyUI อยู่แล้ว (Linux เท่านั้น)
+bash install_comfy.sh          # ข้ามได้ถ้ามี ComfyUI อยู่แล้ว
 export HF_TOKEN=hf_xxxx
 bash setup.sh
+```
+
+**Windows** (ดูละเอียดที่ [คู่มือ 4](guides/04-windows.md))
+```powershell
+git clone https://github.com/capruokz/h3-comfy
+cd h3-comfy\skills\h3-setup\scripts
+python precheck.py
+powershell -ExecutionPolicy Bypass -File install_comfy.ps1
+$env:HF_TOKEN = "hf_xxxx"
+powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
 ถ้าติดตรงไหน อ่าน [คู่มือ 3](guides/03-install.md) ซึ่งอธิบายทีละขั้นพร้อมวิธีแก้ปัญหา
