@@ -85,7 +85,7 @@ H3 เจนคลิปวิดีโอที่มีทั้งภาพ�
 |---|---|---|
 | **การ์ดจอ** | **NVIDIA RTX 50 ซีรีส์ · VRAM 16 GB** | **รุ่นอื่นใช้ไม่ได้** ดูข้างล่าง |
 | พื้นที่ว่าง | 100 GB | ตัวโมเดล 38 GB ที่เหลือไว้เก็บคลิป |
-| ComfyUI | ติดตั้งไว้แล้ว | เครื่องเช่าเลือกเทมเพลตที่มี ComfyUI ได้เลย |
+| ComfyUI | **ไม่ต้องมีก่อนก็ได้** | `install_comfy.sh` ลงให้ (Linux) · เครื่องเช่าเลือกเทมเพลตที่มี ComfyUI มาเลยก็ได้ |
 | บัญชี Hugging Face | ฟรี | ใช้โหลดไฟล์โมเดล |
 
 **ไม่มีการ์ดจอ?** เช่าได้ ราวชั่วโมงละ 20–40 บาท ดู [คู่มือ 1](guides/01-rent-vast.md)
@@ -110,8 +110,10 @@ H3 เจนคลิปวิดีโอที่มีทั้งภาพ�
 ## เริ่มเร็ว (สำหรับคนที่มีเครื่องพร้อมแล้ว)
 
 ```bash
-export HF_TOKEN=hf_xxxx
 git clone https://github.com/capruokz/h3-comfy && cd h3-comfy/skills/h3-setup/scripts
+python3 precheck.py            # เครื่องนี้ไหวมั้ย
+bash install_comfy.sh          # ข้ามได้ถ้ามี ComfyUI อยู่แล้ว (Linux เท่านั้น)
+export HF_TOKEN=hf_xxxx
 bash setup.sh
 ```
 

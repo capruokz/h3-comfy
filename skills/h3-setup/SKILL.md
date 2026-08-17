@@ -1,6 +1,6 @@
 ---
 name: h3-setup
-description: ติดตั้ง MiniMax H3 ลงบน ComfyUI ที่ยังว่างเปล่า ทั้งบนเครื่องเช่า vast.ai และเครื่องตัวเอง (รองรับเฉพาะการ์ด NVIDIA RTX 50 ซีรีส์ / Blackwell ขึ้นไป) — ตรวจสแต็กก่อนจ่ายค่าโหลด 38 GB, โหลดโมเดล 5 ไฟล์, ล็อกเวอร์ชัน custom node, แพตช์บั๊กที่ทำให้ต่อ ref เสียงไม่ได้. มีสคริปต์วัดเพดานความยาวคลิปของการ์ดให้ด้วยแต่เป็นของเสริม. Use when installing MiniMax H3 on a fresh machine, when renting a GPU on vast.ai for video generation, when H3 renders far slower than expected, when a clip suddenly costs 2-3x per frame with no error, or when the user asks how long a clip their card can handle.
+description: ติดตั้ง ComfyUI และ MiniMax H3 ลงเครื่องเปล่าตั้งแต่ต้นจนรันได้ ทั้งเครื่องตัวเองและเครื่องเช่า vast.ai (รองรับเฉพาะการ์ด NVIDIA RTX 50 ซีรีส์ / Blackwell ขึ้นไป) — ถามผู้ใช้ก่อนว่าจะลงที่ไหน, ตรวจสเปคเครื่องด้วย precheck.py ที่รันบนเครื่องเปล่าได้, ลง ComfyUI, โหลดโมเดล 5 ไฟล์ 38 GB, ล็อกเวอร์ชัน custom node, แพตช์บั๊กที่ทำให้ต่อ ref เสียงไม่ได้ และเปิดเซิร์ฟเวอร์ให้พร้อมใช้. Use when the user wants to install ComfyUI or MiniMax H3 from scratch, asks whether their machine can run it, wants to rent a GPU on vast.ai for video generation, when H3 renders far slower than expected, or when a clip suddenly costs 2-3x per frame with no error.
 ---
 
 # ติดตั้ง H3
@@ -18,14 +18,54 @@ description: ติดตั้ง MiniMax H3 ลงบน ComfyUI ที่ย�
 และต้องบอกเขาว่าตัวเลขในเอกสารเทียบไม่ได้แล้ว **อย่าแก้เกณฑ์ในสคริปต์ให้หลวมลงเพื่อ
 ให้เครื่องหนึ่งผ่าน** — นั่นทำให้คนถัดไปเชื่อตัวเลขที่ไม่มีใครวัด
 
+## ถามผู้ใช้ก่อนเสมอ — ห้ามเริ่มติดตั้งเอง
+
+การติดตั้งชุดนี้โหลดไฟล์ **38 GB** และเปลี่ยนแปลงเครื่อง **ถามให้ครบก่อนแตะอะไร**
+
+**คำถามที่ 1 — ลงที่ไหน**
+
+> จะติดตั้งลงเครื่องของคุณเอง หรือจะเช่าเครื่องมาใช้ครับ
+
+- **เครื่องตัวเอง** → ไปคำถามที่ 2 · เครื่องเขาลบยากกว่าเครื่องเช่ามาก ต้องรอบคอบกว่า
+- **เช่าเครื่อง** → พาไป [guides/01-rent-vast.md](../../guides/01-rent-vast.md) ก่อน
+  ยังไม่ต้องทำอะไรจนกว่าเขาจะได้เครื่องมา
+
+**คำถามที่ 2 — ตรวจเครื่องก่อน**
+
+```bash
+python3 precheck.py --target <ที่ที่จะติดตั้ง>
+```
+
+ใช้แต่ของที่มากับ Python และ `nvidia-smi` **รันได้บนเครื่องที่ยังไม่มีอะไรเลย**
+(`check_stack.py` ใช้ตรงนี้ไม่ได้ มันต้อง import torch ก่อน)
+
+ถ้าไม่ผ่าน มันบอกเหตุผลและทางออกให้แล้ว **อย่าพยายามข้าม** — การ์ดไม่ใช่ RTX 50 ซีรีส์
+หรือ Mac คือจบจริงๆ เสนอให้เช่าเครื่องแทน
+
+**คำถามที่ 3 — ขออนุญาตก่อนลงจริง** (เฉพาะเครื่องตัวเอง)
+
+บอกให้ครบสี่ข้อแล้วรอเขาตอบ:
+
+1. จะลงไว้ที่โฟลเดอร์ไหน
+2. กินพื้นที่รวมเท่าไหร่ — ComfyUI ~5 GB + โมเดล 38 GB
+3. ใช้เวลาประมาณเท่าไหร่
+4. ถ้าจะลบทีหลังทำยังไง (ลบโฟลเดอร์นั้นทิ้ง)
+
+**"ลงเครื่องตัวเอง" ไม่ได้แปลว่า "เริ่มลงได้เลย"** ต้องได้คำตอบรับก่อน
+
 ## ลำดับที่ห้ามสลับ
 
 ```bash
+python3 precheck.py                # เครื่องนี้ไหวมั้ย -- รันบนเครื่องเปล่าได้
+bash install_comfy.sh              # ข้ามถ้ามี ComfyUI อยู่แล้ว (Linux เท่านั้น)
 export HF_TOKEN=hf_xxxx
-bash setup.sh          # ตรวจก่อน → โหลด → node → แพตช์ → restart → จด machine.json
+bash setup.sh                      # ตรวจ → โหลด → node → แพตช์ → restart → จด machine.json
 ```
 
 จบแค่นี้ เจนได้เลย **`find_ceiling.py` เป็นของเสริม ไม่ต้องรัน** (ดูหัวข้อเพดานเฟรมข้างล่าง)
+
+**Windows ไม่มี `install_comfy.sh`** ให้โหลด ComfyUI portable จากหน้า release ของเขา
+แตกไฟล์ รันหนึ่งครั้ง แล้วค่อยมาต่อที่ `setup.sh`
 
 **ตรวจสแต็กมาก่อนโหลดโดยตั้งใจ** เครื่องที่ตั้งค่าผิดยังเจนคลิปออกมาได้ปกติ ไม่มี error
 แค่ช้ากว่าที่ควรหลายเท่า — ที่บ้านเคยเสียไปครึ่งวันเพราะ SageAttention ยังเป็น 1.0.6
@@ -36,6 +76,8 @@ bash setup.sh          # ตรวจก่อน → โหลด → node → 
 
 | สคริปต์ | แก้ปัญหาอะไร |
 |---|---|
+| `precheck.py` | **ตรวจเครื่องเปล่า** ว่าคุ้มที่จะติดตั้งมั้ย ใช้แต่ stdlib + `nvidia-smi` ไม่ต้องมี torch |
+| `install_comfy.sh` | ลง ComfyUI บน Linux ที่ยังไม่มี แล้วเปิดรอ (ลง torch cu130 ก่อน requirements ไม่งั้น pip หยิบล้อผิดมาทับ) |
 | `check_stack.py` | ยืนยันว่าเป็น cu130 + SageAttention ≥2.2 ก่อนจ่ายค่าโหลด |
 | `comfy_env.sh` | **หา ComfyUI ตัวที่รันอยู่จริง** เทมเพลต vast มีสองชุดบนดิสก์ ตัวที่ `[ -d ]` เจอก่อนไม่ใช่ตัวที่ให้บริการ เคยทำให้ 38 GB ลงผิดที่ |
 | `setup.sh` | โหลดโมเดล + clone node ที่ล็อกคอมมิต + แพตช์ + restart |
