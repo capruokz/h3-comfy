@@ -1,0 +1,9 @@
+{
+  "name": "h3-comfy",
+  "description": "ติดตั้งและใช้งาน MiniMax H3 บน ComfyUI — ตั้งแต่เช่าเครื่อง vast.ai ไปจนถึงเขียน prompt ให้มันวาดตาม",
+  "version": "0.1.0",
+  "author": { "name": "" },
+  "homepage": "https://github.com/capruokz/h3-comfy",
+  "keywords": ["comfyui", "minimax-h3", "video-generation", "vast.ai"],
+  "skills": ["./skills/h3-setup", "./skills/h3-run", "./skills/h3-prompt"]
+}

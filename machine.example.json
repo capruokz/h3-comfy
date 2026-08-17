@@ -1,0 +1,8 @@
+{
+ "comfy_root": "/workspace/ComfyUI",
+ "comfy_api": "http://127.0.0.1:18188",
+ "mp": 0.6,
+ "frame_ceiling": 294,
+ "vram_total_mib": 16311,
+ "note": "ตัวอย่าง — ของจริงสร้างโดย setup.sh (comfy_root) แล้ว find_ceiling.py เติม (frame_ceiling) อย่าแก้มือ"
+}
