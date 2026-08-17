@@ -1,3 +1,13 @@
+# ไฟล์นี้ดัดแปลงมาจาก __init__.py ของ ComfyUI-MiniMax-H3-Turbo
+# ต้นทาง: https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo  (คอมมิต 55fee86)
+# ผู้สร้างเดิม: Larryvrh  ·  สัญญาอนุญาต: Apache License 2.0
+#
+# THIS FILE HAS BEEN MODIFIED from the original work.
+# แก้ให้ sampler ทำงานได้เมื่อมี ref เสียงแบบเดี่ยวต่ออยู่ และให้ตรวจเองว่า ComfyUI
+# รุ่นที่รันอยู่มี ModelSamplingAV แล้วหรือยัง รายละเอียดอยู่ในไฟล์ NOTICE ที่รากรีโป
+#
+# สำเนาของ Apache License 2.0 อยู่ที่ไฟล์ LICENSE ที่รากรีโป
+
 """ComfyUI nodes for the MiniMax-H3 Turbo LoRA (4-step audio-video).
 
 Drops into the stock MiniMax-H3 workflow (t2v and i2v):
