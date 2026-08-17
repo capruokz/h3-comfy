@@ -1,12 +1,12 @@
 ---
 name: h3-setup
-description: ติดตั้ง MiniMax H3 ลงบน ComfyUI ที่ยังว่างเปล่า ทั้งบนเครื่องเช่า vast.ai และเครื่องตัวเอง (รองรับเฉพาะการ์ด NVIDIA RTX 50 ซีรีส์ / Blackwell ขึ้นไป) — ตรวจสแต็กก่อนจ่ายค่าโหลด 38 GB, โหลดโมเดล 5 ไฟล์, ล็อกเวอร์ชัน custom node, แพตช์บั๊กที่ทำให้ต่อ ref เสียงไม่ได้, และหาเพดานความยาวคลิปของการ์ดใบนั้นเอง. Use when installing MiniMax H3 on a fresh machine, when renting a GPU on vast.ai for video generation, when H3 renders far slower than expected, when a clip suddenly costs 2-3x per frame with no error, or when the user asks how long a clip their card can handle.
+description: ติดตั้ง MiniMax H3 ลงบน ComfyUI ที่ยังว่างเปล่า ทั้งบนเครื่องเช่า vast.ai และเครื่องตัวเอง (รองรับเฉพาะการ์ด NVIDIA RTX 50 ซีรีส์ / Blackwell ขึ้นไป) — ตรวจสแต็กก่อนจ่ายค่าโหลด 38 GB, โหลดโมเดล 5 ไฟล์, ล็อกเวอร์ชัน custom node, แพตช์บั๊กที่ทำให้ต่อ ref เสียงไม่ได้. มีสคริปต์วัดเพดานความยาวคลิปของการ์ดให้ด้วยแต่เป็นของเสริม. Use when installing MiniMax H3 on a fresh machine, when renting a GPU on vast.ai for video generation, when H3 renders far slower than expected, when a clip suddenly costs 2-3x per frame with no error, or when the user asks how long a clip their card can handle.
 ---
 
 # ติดตั้ง H3
 
 **ถ้ากำลังช่วยคนที่ไม่คุ้นเทอร์มินัล ให้เดินตาม [guides/](../../guides/) แทนหน้านี้**
-หน้านี้เขียนย่อสำหรับคนที่รู้อยู่แล้วว่ากำลังทำอะไร คู่มือในนั้นจับมือทำทีละขั้นพร้อมรูป
+หน้านี้เขียนย่อสำหรับคนที่รู้อยู่แล้วว่ากำลังทำอะไร คู่มือในนั้นจับมือทำทีละขั้น
 
 ## ขอบเขต: การ์ด Blackwell เท่านั้น
 
@@ -22,9 +22,10 @@ description: ติดตั้ง MiniMax H3 ลงบน ComfyUI ที่ย�
 
 ```bash
 export HF_TOKEN=hf_xxxx
-bash setup.sh          # ตรวจก่อน → โหลด → node → แพตช์ → restart
-python3 find_ceiling.py
+bash setup.sh          # ตรวจก่อน → โหลด → node → แพตช์ → restart → จด machine.json
 ```
+
+จบแค่นี้ เจนได้เลย **`find_ceiling.py` เป็นของเสริม ไม่ต้องรัน** (ดูหัวข้อเพดานเฟรมข้างล่าง)
 
 **ตรวจสแต็กมาก่อนโหลดโดยตั้งใจ** เครื่องที่ตั้งค่าผิดยังเจนคลิปออกมาได้ปกติ ไม่มี error
 แค่ช้ากว่าที่ควรหลายเท่า — ที่บ้านเคยเสียไปครึ่งวันเพราะ SageAttention ยังเป็น 1.0.6
@@ -38,7 +39,7 @@ python3 find_ceiling.py
 | `check_stack.py` | ยืนยันว่าเป็น cu130 + SageAttention ≥2.2 ก่อนจ่ายค่าโหลด |
 | `comfy_env.sh` | **หา ComfyUI ตัวที่รันอยู่จริง** เทมเพลต vast มีสองชุดบนดิสก์ ตัวที่ `[ -d ]` เจอก่อนไม่ใช่ตัวที่ให้บริการ เคยทำให้ 38 GB ลงผิดที่ |
 | `setup.sh` | โหลดโมเดล + clone node ที่ล็อกคอมมิต + แพตช์ + restart |
-| `find_ceiling.py` | **หาเพดานเฟรมของการ์ดใบนี้เอง** ไม่ใช่เชื่อตัวเลขในเอกสาร |
+| `find_ceiling.py` | **ของเสริม ไม่อยู่ในลำดับติดตั้ง** วัดเพดานเฟรมของการ์ดใบนี้ กิน 10-20 นาทีของเวลาที่จ่ายค่าเช่าอยู่ |
 | `h3turbo_patched__init__.py` | โหนด turbo ต้นฉบับตายทันทีที่ต่อ `<Audio N>` เดี่ยว — `_unique_t` สร้างแถว timestep น้อยกว่า core หนึ่งแถว คลิปที่มีบทพูดจึงรันไม่ได้เลย |
 
 ## กับดักของเครื่องเช่าที่ต้องรู้
@@ -58,6 +59,10 @@ python3 find_ceiling.py
 294 เฟรม = 1.24 วิ/เฟรม แต่ 362 เฟรม = **3.27 วิ/เฟรม** ทั้งที่เรนเดอร์ผ่านทั้งคู่
 
 **ตัวเลข 294 นั้นเป็นของการ์ดใบนั้น ไม่ใช่ของทุกใบ** — อย่าเอาไปเขียนเป็นกฎ
+
+**แต่ไม่ต้องไล่ให้ผู้ใช้ไปวัดก่อนใช้งาน** ค่าเช่า 10-20 นาทีเพื่อไปรู้เรื่องที่การ์ด VRAM สูง
+จะตอบว่า "ไม่ต้องห่วง" อยู่แล้ว ไม่คุ้ม บอกกฎกับวิธีสังเกตก็พอ: ถ้าเพิ่มความยาวคลิป
+นิดเดียวแล้วเวลาพุ่งเท่าตัว คือเลยเพดานแล้ว ให้ถอยกลับ
 
 วิธีจับว่าล้นคือดู **กำลังไฟ** ไม่ใช่ VRAM: การ์ดที่ทำงานจริงกินไฟใกล้ค่าสูงสุด
 ส่วนการ์ดที่รูดข้อมูลกับ RAM จะขึ้น util 100% แต่กินไฟแค่ **48 W บนการ์ด 180 W**
