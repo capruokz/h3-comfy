@@ -160,6 +160,21 @@ MAX_JOBS=32 python3 -m pip install -v --no-build-isolation \
     git+https://github.com/thu-ml/SageAttention.git
 ```
 
+**ComfyUI ตายกลางคันโดยไม่มี error ในล็อกเลย**
+→ เจอบ่อยกับการ์ด 16 GB: โมเดล 17.7 GB ถูก stage ไว้ในแรมระบบ ถ้าหน่วยความจำก้อนนั้น
+ถูกล็อกห้ามสลับออก เคอร์เนลจะฆ่าโปรเซสทิ้งกลาง sampling step แรก **ไม่มี traceback
+ไม่มี `torch.OutOfMemoryError`** เพราะถูกฆ่าจากนอกโปรเซส
+รัน `restart_comfy.sh` ตัวใหม่ (ใส่ `--disable-pinned-memory --fast-disk` ให้แล้ว)
+ถ้าเปิดเองให้ใส่สองแฟล็กนี้ด้วยเสมอ
+
+**หา log ไม่เจอ / log ไม่มีอะไรเปลี่ยน**
+→ ถ้า `restart_comfy.sh` เปิดแบบถือโปรเซสเอง log จะอยู่ที่ **`/workspace/comfy.log`**
+ไม่ใช่ `/workspace/ComfyUI/comfy.log` ซึ่งเป็นของโปรเซสเก่าที่ supervisor เคยถือ
+
+**หน้า Supervisor ขึ้น `comfyui STOPPED` ทั้งที่ ComfyUI ใช้งานได้**
+→ ปกติสำหรับกรณีที่ต้องถือโปรเซสเอง supervisor มองไม่เห็น อย่ากดปุ่ม Start ทับ
+เพราะจะแย่งพอร์ตกับตัวที่รันอยู่ ตรวจว่าเปิดจริงไหมด้วย `/system_stats` แทน
+
 **ขึ้น `cusparse.h: No such file or directory`**
 → อิมเมจนี้มีตัวคอมไพล์แต่ไฟล์ประกอบไม่ครบ `setup.sh --fix` จัดการให้อยู่แล้ว
 ถ้ายังไม่หายแปลว่าอิมเมจเก่าเกินไป เปลี่ยนเครื่อง
