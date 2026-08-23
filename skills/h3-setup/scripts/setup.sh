@@ -51,8 +51,18 @@ PYEOF
       apt-get update -qq && apt-get install -y cuda-libraries-dev-13-2 cuda-cccl-13-2
     fi
   fi
-  $PY -m pip install -q -U "sageattention>=2.2" || \
-    echo "!! ลง sageattention จาก pip ไม่สำเร็จ -- ดู guides/03-install.md หัวข้อแก้ปัญหา"
+  # PyPI มี sageattention ถึงแค่ 1.0.6 เท่านั้น 2.2 ไม่เคยมีล้อขึ้นไปวาง
+  # `pip install "sageattention>=2.2"` จึงล้มเสมอด้วย No matching distribution
+  # และ 1.0.6 คือตัวที่ไม่มี path ของ Blackwell — ต้องคอมไพล์จากซอร์สเท่านั้น
+  #
+  # --no-build-isolation ไม่ใช่ของเลือกใส่: setup.py ของ SageAttention import torch
+  # ตอนบิลด์ แต่ build env ที่ pip สร้างแยกไม่มี torch อยู่ในนั้น อาการที่ได้คือ
+  # ModuleNotFoundError: No module named 'torch' จาก path /tmp/pip-build-env
+  # ซึ่งอ่านแล้วเหมือน torch ไม่ได้ลง ทั้งที่ลงอยู่
+  # MAX_JOBS กระจาย nvcc ลงหลายคอร์ ไม่ใส่แล้วคอมไพล์คลานมาก
+  MAX_JOBS="${MAX_JOBS:-32}" $PY -m pip install -v --no-build-isolation \
+      git+https://github.com/thu-ml/SageAttention.git || \
+    echo "!! คอมไพล์ sageattention ไม่สำเร็จ -- ดู guides/03-install.md หัวข้อแก้ปัญหา"
 fi
 
 if ! $PY "$HERE/check_stack.py"; then

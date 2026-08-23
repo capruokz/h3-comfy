@@ -152,6 +152,14 @@ COMFY=/path/to/ComfyUI bash setup.sh
 → เครื่องนี้เน็ตช้า ยกเลิกด้วย `Ctrl+C` แล้ว Destroy ไปเลือกเครื่องที่ Mbps สูงกว่า
 จ่ายค่าเช่ารอโหลดแพงกว่าค่าเช่าเครื่องที่ดีกว่า
 
+**ขึ้น `No matching distribution found for sageattention>=2.2`**
+→ `setup.sh` รุ่นเก่าลงจาก PyPI ซึ่งมีถึงแค่ 1.0.6 รุ่นใหม่คอมไพล์จากซอร์สให้แล้ว
+`git pull` แล้วรัน `bash setup.sh --fix` ซ้ำ ถ้าอยากลงเองมือ:
+```bash
+MAX_JOBS=32 python3 -m pip install -v --no-build-isolation \
+    git+https://github.com/thu-ml/SageAttention.git
+```
+
 **ขึ้น `cusparse.h: No such file or directory`**
 → อิมเมจนี้มีตัวคอมไพล์แต่ไฟล์ประกอบไม่ครบ `setup.sh --fix` จัดการให้อยู่แล้ว
 ถ้ายังไม่หายแปลว่าอิมเมจเก่าเกินไป เปลี่ยนเครื่อง
