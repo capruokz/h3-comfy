@@ -25,7 +25,7 @@ echo "port    : $PORT"
 # within seconds and starts a replacement that grabs the port before we do.
 for name in $(supervisorctl status 2>/dev/null | awk '{print $1}'); do
   case "$name" in
-    *[Cc]omfy*) echo "stopping supervisor job: $name"; supervisorctl stop "$name" >/dev/null 2>&1 ;;
+    *[Cc]omfy*) echo "stopping supervisor job: $name"; SUPER_JOB="$name"; supervisorctl stop "$name" >/dev/null 2>&1 ;;
   esac
 done
 pkill -f 'main\.py' 2>/dev/null
@@ -42,8 +42,44 @@ if pgrep -f 'main\.py' >/dev/null; then
 fi
 
 cd "$COMFY" || exit 1
-nohup python main.py --port "$PORT" --disable-auto-launch --enable-cors-header \
-    --fast fp16_accumulation --use-sage-attention > /workspace/comfy.log 2>&1 &
+# แฟล็กที่ต้องมีครบ ไม่ใช่แค่ sage attention:
+#   --disable-pinned-memory  โมเดล 17.7 GB ถูก stage ไว้ในแรมระบบเมื่อการ์ดอุ้มไม่หมด
+#     ถ้าหน่วยความจำก้อนนั้นถูกล็อกห้ามสลับออก เคอร์เนลจะฆ่าโปรเซสทิ้งกลาง sampling
+#     step แรก โดยไม่มี traceback และไม่มี torch.OutOfMemoryError ให้เห็นเลย
+#     (เจอจริงบน 5080 15.5 GB / RAM 62 GB ล่มสี่รอบติด 2026-08-23 — เครื่องบ้าน
+#      สเปกเดียวกันเป๊ะแต่รันได้ เพราะเปิดแฟล็กนี้อยู่)
+#   --fast-disk              ให้ที่พักส่วนที่ล้นลงดิสก์แทนที่จะกองในแรม
+#   --fast fp16_accumulation ความเร็ว ไม่กระทบภาพ
+ARGS="--port $PORT --disable-auto-launch --enable-cors-header\
+  --disable-pinned-memory --fast-disk --fast fp16_accumulation --use-sage-attention"
+
+# ถ้ามี supervisor job ของ comfyui อยู่ ให้แก้ config ของมันแล้วสั่งเปิดผ่าน supervisor
+# ดีกว่าถือโปรเซสเอง: หน้า portal จะไม่โกหกว่า STOPPED ทั้งที่รันอยู่ และเมื่อโปรเซส
+# ตายกลางดึกจะมีคนปลุกให้ ส่วน nohup ตายแล้วตายเลย (บทเรียน 2026-08-23)
+CONF="$(grep -rl "ComfyUI" /etc/supervisor* 2>/dev/null | head -1)"
+if [ -n "$CONF" ] && [ -n "${SUPER_JOB:-}" ]; then
+  echo "แก้ config supervisor: $CONF"
+  python3 - "$CONF" "$COMFY" "$ARGS" <<'PY'
+import re, sys
+conf, comfy, args = sys.argv[1], sys.argv[2], sys.argv[3]
+s = open(conf).read()
+cmd = f"command=python {comfy}/main.py " + " ".join(args.split())
+s = re.sub(r"^command=.*$", cmd, s, count=1, flags=re.M)
+open(conf, "w").write(s)
+print("  ->", cmd)
+PY
+  supervisorctl reread >/dev/null 2>&1; supervisorctl update >/dev/null 2>&1
+  supervisorctl start "$SUPER_JOB" >/dev/null 2>&1
+  echo "เปิดผ่าน supervisor แล้ว (ปุ่มในหน้า portal ใช้ได้ตามปกติ)"
+else
+  cd "$COMFY" || exit 1
+  # ทางสำรอง: ไม่มี config ให้แก้ ต้องถือโปรเซสเอง
+  # **log จะไปอยู่ที่ /workspace/comfy.log ไม่ใช่ $COMFY/comfy.log** — เคยหลงอ่าน
+  # ไฟล์ของโปรเซสที่ตายไปแล้วสามรอบจนหาสาเหตุไม่เจอ
+  nohup python main.py $ARGS > /workspace/comfy.log 2>&1 &
+  echo "started pid $! -- log อยู่ที่ /workspace/comfy.log"
+  echo "!! หน้า portal จะขึ้น STOPPED ตลอดเพราะ supervisor ไม่ได้ถือโปรเซสนี้"
+fi
 echo "started pid $! -- waiting for it to answer"
 
 for i in $(seq 1 60); do
