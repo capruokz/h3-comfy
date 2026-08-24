@@ -87,7 +87,8 @@ function Get-Model($repo, $file, $dir) {
 
 # --- 3. โมเดล รวม 38.0 GB ----------------------------------------------------
 # fl2va ไม่ใช่ ref2va -- อยู่รีโปเดียวกัน ต่างกันคำเดียว แต่ workflow เรียก fl2va
-foreach ($sub in @("diffusion_models", "text_encoders", "vae", "loras")) {
+foreach ($sub in @("diffusion_models", "text_encoders", "vae", "loras",
+                   "latent_upscale_models")) {
     New-Item -ItemType Directory -Force (Join-Path $Comfy "models\$sub") | Out-Null
 }
 Get-Model "tsolful/Minimax_H3_INT4MixedConvRot" "minimax_h3_fl2va_pruned_INT4Q.safetensors" (Join-Path $Comfy "models\diffusion_models")
@@ -95,6 +96,7 @@ Get-Model "Comfy-Org/MiniMax-H3" "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_video_vae_fp16.safetensors" (Join-Path $Comfy "models")
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_audio_vae_fp32.safetensors" (Join-Path $Comfy "models")
 Get-Model "larryvrh/MiniMax-H3-Turbo-Lora" "minimax_h3_turbo_v4_step600_ema.safetensors" (Join-Path $Comfy "models\loras")
+Get-Model "LBH-123-AI/Minimax_h3_latent_Upscaler" "minimax_h3_latent_upscaler_3d_bf16.safetensors" (Join-Path $Comfy "models\latent_upscale_models")
 
 # --- 4. custom node ล็อกคอมมิตไว้ --------------------------------------------
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -113,6 +115,7 @@ function Get-Node($url, $name, $commit) {
 Get-Node "https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo" "ComfyUI-MiniMax-H3-Turbo" "55fee86"
 Get-Node "https://github.com/kijai/ComfyUI-KJNodes"             "comfyui-kjnodes"          "dcfcb5d"
 Get-Node "https://github.com/kijai/ComfyUI-SolAttn_triton"      "ComfyUI-SolAttn_triton"   "1b8dece"
+Get-Node "https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale" "Comfyui-MMH3-UltimateUpscale" "HEAD"
 
 # --- 5. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์

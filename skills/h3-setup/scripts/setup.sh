@@ -84,15 +84,18 @@ dl() { echo ">> $2"; hf download "$1" "$2" --local-dir "$3"; }
 # --- 2. โมเดล รวม 38.0 GB ----------------------------------------------------
 # fl2va ไม่ใช่ ref2va ชุดเก่าเคยโหลด ref2va มาทั้งที่ workflow ของตัวเองเรียก fl2va
 # จึงโหลดไม่ขึ้นตั้งแต่แรก อยู่รีโปเดียวกัน ต่างกันคำเดียว
-mkdir -p "$COMFY"/models/{diffusion_models,text_encoders,vae,loras}
+mkdir -p "$COMFY"/models/{diffusion_models,text_encoders,vae,loras,latent_upscale_models}
 dl tsolful/Minimax_H3_INT4MixedConvRot minimax_h3_fl2va_pruned_INT4Q.safetensors "$COMFY/models/diffusion_models"
 dl Comfy-Org/MiniMax-H3 text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors "$COMFY/models"
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_video_vae_fp16.safetensors "$COMFY/models"
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_audio_vae_fp32.safetensors "$COMFY/models"
 dl larryvrh/MiniMax-H3-Turbo-Lora minimax_h3_turbo_v4_step600_ema.safetensors "$COMFY/models/loras"
+# ตัวขยาย latent 3D 691 MB -- ใช้กับสูตรเจนฐานความละเอียดต่ำแล้วขยาย ซึ่งได้ภาพ
+# คมกว่าและเร็วกว่าการเจนที่ความละเอียดปลายทางตรง ๆ
+dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors "$COMFY/models/latent_upscale_models"
 
 # --- 3. custom node ล็อกคอมมิตไว้ --------------------------------------------
-# สามชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
+# สี่ชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
 # ComfyMathExpression -- อยู่ใน comfy_extras ของ ComfyUI เองแล้ว
 clone() {  # url, dir, commit
   local d="$COMFY/custom_nodes/$2"
@@ -104,6 +107,10 @@ clone() {  # url, dir, commit
 clone https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo ComfyUI-MiniMax-H3-Turbo 55fee86
 clone https://github.com/kijai/ComfyUI-KJNodes              comfyui-kjnodes            dcfcb5d
 clone https://github.com/kijai/ComfyUI-SolAttn_triton       ComfyUI-SolAttn_triton     1b8dece
+# โหนดขยายภาพ -- ต่อท้าย sampler แล้ว re-sample ที่ความละเอียดสูงกว่า
+# หมายเหตุ: การหั่นไทล์ (spatial_split_param) ใช้กับ turbo LoRA ไม่ได้ ตกด้วย
+# tensor a (N) vs b (N-1) เหมือนบั๊ก ref_audio ข้างล่าง ให้ปล่อยไม่ต่อไว้
+clone https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale Comfyui-MMH3-UltimateUpscale HEAD
 
 # --- 4. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง
