@@ -243,3 +243,6 @@ Copy-Item -Recurse h3-comfy\skills\* "$env:USERPROFILE\.claude\skills\"
 - Turbo LoRA — larryvrh
 - โหนด Turbo — Larryvrh/ComfyUI-MiniMax-H3-Turbo
 - KJNodes, SolAttn — kijai
+- MMH3 UltimateUpscale — bbaudio-2025
+- โหนดและโมเดลอัพสเกล latent 3D — LBH-123-AI
+- VideoHelperSuite — Kosinkadink
