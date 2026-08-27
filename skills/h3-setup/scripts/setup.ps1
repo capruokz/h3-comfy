@@ -116,6 +116,10 @@ Get-Node "https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo" "ComfyUI-MiniMax
 Get-Node "https://github.com/kijai/ComfyUI-KJNodes"             "comfyui-kjnodes"          "dcfcb5d"
 Get-Node "https://github.com/kijai/ComfyUI-SolAttn_triton"      "ComfyUI-SolAttn_triton"   "1b8dece"
 Get-Node "https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale" "Comfyui-MMH3-UltimateUpscale" "HEAD"
+# MinimaxH3LatentUpscaler3D -- คนละแพ็กกับ UltimateUpscale ใช้กับเส้นทางแบ่ง sigma
+Get-Node "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler" "Comfyui_Minimax_h3_latent_Upscaler" "64fc9d4"
+# VHS_LoadVideoPath -- ref_videos รับ IMAGE ไม่ใช่ VIDEO จึงต้องมีตัวแปลงคลิปเป็นเฟรม
+Get-Node "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite" "comfyui-videohelpersuite" "1.7.9"
 
 # --- 5. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์

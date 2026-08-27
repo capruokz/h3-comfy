@@ -95,8 +95,9 @@ dl larryvrh/MiniMax-H3-Turbo-Lora minimax_h3_turbo_v4_step600_ema.safetensors "$
 dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors "$COMFY/models/latent_upscale_models"
 
 # --- 3. custom node ล็อกคอมมิตไว้ --------------------------------------------
-# สี่ชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
-# ComfyMathExpression -- อยู่ใน comfy_extras ของ ComfyUI เองแล้ว
+# หกชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
+# ComfyMathExpression, SplitSigmas, SamplerCustomAdvanced, BasicGuider,
+# LTXVSeparateAVLatent, LTXVConcatAVLatent -- อยู่ใน comfy_extras ของ ComfyUI เองแล้ว
 clone() {  # url, dir, commit
   local d="$COMFY/custom_nodes/$2"
   [ -d "$d" ] || git clone "$1" "$d"
@@ -111,6 +112,15 @@ clone https://github.com/kijai/ComfyUI-SolAttn_triton       ComfyUI-SolAttn_trit
 # หมายเหตุ: การหั่นไทล์ (spatial_split_param) ใช้กับ turbo LoRA ไม่ได้ ตกด้วย
 # tensor a (N) vs b (N-1) เหมือนบั๊ก ref_audio ข้างล่าง ให้ปล่อยไม่ต่อไว้
 clone https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale Comfyui-MMH3-UltimateUpscale HEAD
+# MinimaxH3LatentUpscaler3D -- คนละแพ็กกับ UltimateUpscale ข้างบน ใช้กับเส้นทางแบ่ง
+# sigma (เจนฐานเล็กบางสเตป -> ขยาย latent -> เก็บสเตปท้ายที่ขนาดจริง) ซึ่งเสียงถูกแยก
+# ออกด้วย LTXVSeparateAVLatent ก่อนขยาย จึงไม่เจอบั๊ก tensor a (3) vs b (4) เลย
+clone https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler \
+      Comfyui_Minimax_h3_latent_Upscaler 64fc9d4
+# VHS_LoadVideoPath -- แปลงคลิปเป็นเฟรม IMAGE ให้ ref_videos ของ MiniMaxH3ReferenceToVideo
+# ช่องนั้นรับ IMAGE ไม่ใช่ VIDEO โหนด Load Video ของคอร์จึงต่อตรงเข้าไปไม่ได้
+clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite \
+      comfyui-videohelpersuite 1.7.9
 
 # --- 4. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง
