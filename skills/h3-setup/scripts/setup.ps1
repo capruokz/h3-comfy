@@ -59,8 +59,11 @@ if ($LASTEXITCODE -ne 0 -and -not $Force) {
 # HF ย้ายมาใช้ Xet แล้ว โหมดหลายคอนเนกชันปิดไว้เป็นค่าเริ่มต้น ซึ่งกับ 38 GB
 # คือความต่างระหว่างไม่กี่นาทีกับเป็นชั่วโมง
 & $Python -m pip install -q -U "huggingface_hub[hf_xet]"
-$env:HF_XET_HIGH_PERFORMANCE = "1"
-$env:HF_HUB_DISABLE_XET = "0"
+# ค่าตั้งต้นเปิด Xet ไว้เพราะวัดแล้วเร็วกว่าจริง แต่ถ้าเครื่องไหนต่อไปยัง CAS backend
+# ของ Xet ได้ไม่ดี (เร็วช่วงแรกแล้วร่วงเหลือหลักร้อย kB/s แถบ reconstructing ค้างนิ่ง)
+# ให้ตั้ง $env:HF_HUB_DISABLE_XET = "1" ก่อนเรียกสคริปต์นี้ แล้วมันจะไม่ถูกทับ
+if (-not $env:HF_XET_HIGH_PERFORMANCE) { $env:HF_XET_HIGH_PERFORMANCE = "1" }
+if (-not $env:HF_HUB_DISABLE_XET)      { $env:HF_HUB_DISABLE_XET = "0" }
 if (-not $env:HF_TOKEN) {
     Write-Host "!! ไม่ได้ตั้ง HF_TOKEN -- จะโดนจำกัดความเร็ว ดู guides/02-hf-token.md"
 }
