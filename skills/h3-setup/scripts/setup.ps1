@@ -96,6 +96,10 @@ Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_video_vae_fp16.safetensors" (Jo
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_audio_vae_fp32.safetensors" (Join-Path $Comfy "models")
 Get-Model "larryvrh/MiniMax-H3-Turbo-Lora" "minimax_h3_turbo_v4_step600_ema.safetensors" (Join-Path $Comfy "models\loras")
 
+# โมเดลอัพสเกล latent สำหรับเส้นทางสองสเตจ (เจนฐานเล็กแล้วขยาย ถูกกว่าเจนตรงที่ขนาดจริง)
+New-Item -ItemType Directory -Force (Join-Path $Comfy "models\latent_upscale_models") | Out-Null
+Get-Model "LBH-123-AI/Minimax_h3_latent_Upscaler" "minimax_h3_latent_upscaler_3d_bf16.safetensors" (Join-Path $Comfy "models\latent_upscale_models")
+
 # --- 4. custom node ล็อกคอมมิตไว้ --------------------------------------------
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "!! ไม่พบ git -- ลงจาก https://git-scm.com/download/win แล้วรันใหม่"
@@ -113,6 +117,10 @@ function Get-Node($url, $name, $commit) {
 Get-Node "https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo" "ComfyUI-MiniMax-H3-Turbo" "55fee86"
 Get-Node "https://github.com/kijai/ComfyUI-KJNodes"             "comfyui-kjnodes"          "dcfcb5d"
 Get-Node "https://github.com/kijai/ComfyUI-SolAttn_triton"      "ComfyUI-SolAttn_triton"   "1b8dece"
+# MinimaxH3LatentUpscaler3D -- เส้นทางสองสเตจ ต้องมีคู่กับโมเดลใน latent_upscale_models
+Get-Node "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler" "Comfyui_Minimax_h3_latent_Upscaler" "64fc9d4"
+# VHS_LoadVideoPath -- แปลงคลิปเป็นเฟรม IMAGE ให้ ref_videos ซึ่งรับ IMAGE ไม่ใช่ VIDEO
+Get-Node "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite" "comfyui-videohelpersuite" "1.7.9"
 
 # --- 5. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์

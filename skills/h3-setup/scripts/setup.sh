@@ -81,9 +81,15 @@ dl Comfy-Org/MiniMax-H3 vae/minimax_h3_video_vae_fp16.safetensors "$COMFY/models
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_audio_vae_fp32.safetensors "$COMFY/models"
 dl larryvrh/MiniMax-H3-Turbo-Lora minimax_h3_turbo_v4_step600_ema.safetensors "$COMFY/models/loras"
 
+# โมเดลอัพสเกล latent สำหรับเส้นทางสองสเตจ (เจนฐานเล็กแล้วขยาย ถูกกว่าเจนตรงที่ขนาดจริง)
+mkdir -p "$COMFY/models/latent_upscale_models"
+dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors \
+   "$COMFY/models/latent_upscale_models"
+
 # --- 3. custom node ล็อกคอมมิตไว้ --------------------------------------------
-# สามชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
-# ComfyMathExpression -- อยู่ใน comfy_extras ของ ComfyUI เองแล้ว
+# ห้าชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
+# ComfyMathExpression, SplitSigmas, SamplerCustomAdvanced, BasicGuider,
+# LTXVSeparateAVLatent, LTXVConcatAVLatent -- อยู่ใน comfy_extras ของ ComfyUI เองแล้ว
 clone() {  # url, dir, commit
   local d="$COMFY/custom_nodes/$2"
   [ -d "$d" ] || git clone "$1" "$d"
@@ -94,6 +100,15 @@ clone() {  # url, dir, commit
 clone https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo ComfyUI-MiniMax-H3-Turbo 55fee86
 clone https://github.com/kijai/ComfyUI-KJNodes              comfyui-kjnodes            dcfcb5d
 clone https://github.com/kijai/ComfyUI-SolAttn_triton       ComfyUI-SolAttn_triton     1b8dece
+
+# MinimaxH3LatentUpscaler3D -- ใช้ในเส้นทางสองสเตจ เจนฐานเล็กแล้วขยาย latent ก่อนเก็บ
+# step ท้ายที่ขนาดจริง ต้องมีคู่กับโมเดลใน models/latent_upscale_models ข้างบน
+clone https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler \
+      Comfyui_Minimax_h3_latent_Upscaler 64fc9d4
+# VHS_LoadVideoPath -- แปลงคลิปเป็นเฟรม IMAGE ให้ ref_videos ของ MiniMaxH3ReferenceToVideo
+# ช่องนั้นรับ IMAGE ไม่ใช่ VIDEO โหนด Load Video ของคอร์จึงต่อตรงไม่ได้
+clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite \
+      comfyui-videohelpersuite 1.7.9
 
 # --- 4. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง
