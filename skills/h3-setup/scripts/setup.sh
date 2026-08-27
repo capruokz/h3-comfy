@@ -74,8 +74,13 @@ fi
 # Hugging Face ย้ายจาก Git LFS มาเป็น Xet แล้ว โหมดหลายคอนเนกชันปิดไว้เป็นค่าเริ่มต้น
 # ซึ่งกับไฟล์รวม 38 GB คือความต่างระหว่าง "ไม่กี่นาที" กับ "เป็นชั่วโมง" ของเวลาที่จ่ายเงินอยู่
 $PY -m pip install -q -U "huggingface_hub[hf_xet]"
-export HF_XET_HIGH_PERFORMANCE=1
-export HF_HUB_DISABLE_XET=0
+# ค่าตั้งต้นเปิด Xet ไว้เพราะวัดแล้วเร็วกว่าจริง (605 MB: 59.7 vs 52.8 MB/s ·
+# 780 MB: 72.8 vs 30.7 MB/s) แต่ `:-` สำคัญ: บางเครื่องต่อไปยัง CAS backend ของ Xet
+# ได้ไม่ดี อาการคือเร็วช่วงแรกแล้วร่วงเหลือหลักร้อย kB/s และแถบ reconstructing
+# ค้างนิ่งไม่ขยับ เจอแบบนั้นให้ `export HF_HUB_DISABLE_XET=1` แล้วรันใหม่
+# ของเดิมบังคับค่าทับ ผู้ใช้จึงหนีไปทาง CDN ปกติไม่ได้เลยนอกจากแก้ไฟล์นี้
+export HF_XET_HIGH_PERFORMANCE="${HF_XET_HIGH_PERFORMANCE:-1}"
+export HF_HUB_DISABLE_XET="${HF_HUB_DISABLE_XET:-0}"
 [ -n "${HF_TOKEN:-}" ] && { hf auth login --token "$HF_TOKEN" 2>/dev/null || true; } \
   || echo "!! ไม่ได้ตั้ง HF_TOKEN -- จะโดนจำกัดความเร็ว ดู guides/02-hf-token.md"
 
