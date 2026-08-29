@@ -101,6 +101,30 @@ Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_audio_vae_fp32.safetensors" (Jo
 Get-Model "larryvrh/MiniMax-H3-Turbo-Lora" "minimax_h3_turbo_v4_step600_ema.safetensors" (Join-Path $Comfy "models\loras")
 Get-Model "LBH-123-AI/Minimax_h3_latent_Upscaler" "minimax_h3_latent_upscaler_3d_bf16.safetensors" (Join-Path $Comfy "models\latent_upscale_models")
 
+# LoRA เนื้อภาพ "Authentic cinematic texture" -- ดันดำที่จมสนิทให้กลับมามีรายละเอียด
+# (L* p1 จาก 1.5 ขึ้นเป็น 4.1) และลดอิ่มสีจาก 141 เหลือ 98 ใช้ที่ strength 0.7
+# CivitAI บังคับโทเคน ถ้าไม่ตั้ง $env:CIVITAI_TOKEN จะข้ามพร้อมบอกวิธี
+$cineDir  = Join-Path $Comfy "models\loras\minimax-h3"
+$cineLora = Join-Path $cineDir "Minimax H3Authentic cinematic texture.safetensors"
+if (Test-Path $cineLora) {
+    Write-Host ">> LoRA เนื้อภาพ: มีแล้ว ข้าม"
+} elseif ($env:CIVITAI_TOKEN) {
+    New-Item -ItemType Directory -Force $cineDir | Out-Null
+    Write-Host ">> LoRA เนื้อภาพ (CivitAI 3267949)"
+    try {
+        Invoke-WebRequest -Uri "https://civitai.com/api/download/models/3267949" `
+            -Headers @{ Authorization = "Bearer $env:CIVITAI_TOKEN" } `
+            -OutFile $cineLora -ErrorAction Stop
+    } catch {
+        if (Test-Path $cineLora) { Remove-Item $cineLora -Force }
+        Write-Host "!! โหลด LoRA เนื้อภาพไม่สำเร็จ ข้ามไปก่อน"
+    }
+} else {
+    Write-Host "!! ข้าม LoRA เนื้อภาพ: ไม่ได้ตั้ง CIVITAI_TOKEN"
+    Write-Host "   เอาโทเคนจาก https://civitai.com/user/account แล้วรันใหม่แบบ"
+    Write-Host '   $env:CIVITAI_TOKEN = "xxxx"; .\setup.ps1'
+}
+
 # --- 4. custom node ล็อกคอมมิตไว้ --------------------------------------------
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "!! ไม่พบ git -- ลงจาก https://git-scm.com/download/win แล้วรันใหม่"
@@ -123,6 +147,9 @@ Get-Node "https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale" "Comfyui
 Get-Node "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler" "Comfyui_Minimax_h3_latent_Upscaler" "64fc9d4"
 # VHS_LoadVideoPath -- ref_videos รับ IMAGE ไม่ใช่ VIDEO จึงต้องมีตัวแปลงคลิปเป็นเฟรม
 Get-Node "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite" "comfyui-videohelpersuite" "1.7.9"
+# ComfyUI-Darkroom -- โหนดเกรดสีและฟิล์มสต็อก workflow ละครต่อ DarkroomFilmStockColor
+# ไว้ท้าย VAEDecode ถ้าไม่มีแพ็กนี้ workflow จะตกทันทีที่คิว
+Get-Node "https://github.com/jeremieLouvaert/ComfyUI-Darkroom" "ComfyUI-Darkroom" "de6d4a8"
 
 # --- 5. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์
