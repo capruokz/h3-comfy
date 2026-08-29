@@ -95,6 +95,24 @@ dl Comfy-Org/MiniMax-H3 text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetenso
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_video_vae_fp16.safetensors "$COMFY/models"
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_audio_vae_fp32.safetensors "$COMFY/models"
 dl larryvrh/MiniMax-H3-Turbo-Lora minimax_h3_turbo_v4_step600_ema.safetensors "$COMFY/models/loras"
+
+# LoRA เนื้อภาพ "Authentic cinematic texture" -- ดันดำที่จมสนิทให้กลับมามีรายละเอียด
+# (วัดแล้ว L* p1 จาก 1.5 ขึ้นเป็น 4.1) และลดอิ่มสีจาก 141 เหลือ 98 ซึ่งเป็นสองอย่าง
+# ที่สั่งในพรอมป์ตแล้วไม่เป็นผลเลย ใช้ที่ strength 0.7
+# CivitAI บังคับโทเคน ถ้าไม่ตั้ง CIVITAI_TOKEN จะข้ามพร้อมบอกวิธี
+CINE_DIR="$COMFY/models/loras/minimax-h3"
+CINE_LORA="$CINE_DIR/Minimax H3Authentic cinematic texture.safetensors"
+if [ -f "$CINE_LORA" ]; then
+  echo ">> LoRA เนื้อภาพ: มีแล้ว ข้าม"
+elif [ -n "${CIVITAI_TOKEN:-}" ]; then
+  mkdir -p "$CINE_DIR"
+  echo ">> LoRA เนื้อภาพ (CivitAI 3267949)"
+  curl -fL --retry 3 -o "$CINE_LORA"     -H "Authorization: Bearer $CIVITAI_TOKEN"     "https://civitai.com/api/download/models/3267949"     || { rm -f "$CINE_LORA"; echo "!! โหลด LoRA เนื้อภาพไม่สำเร็จ ข้ามไปก่อน"; }
+else
+  echo "!! ข้าม LoRA เนื้อภาพ: ไม่ได้ตั้ง CIVITAI_TOKEN"
+  echo "   เอาโทเคนจาก https://civitai.com/user/account แล้วรันใหม่แบบ"
+  echo "   CIVITAI_TOKEN=xxxx bash setup.sh"
+fi
 # ตัวขยาย latent 3D 691 MB -- ใช้กับสูตรเจนฐานความละเอียดต่ำแล้วขยาย ซึ่งได้ภาพ
 # คมกว่าและเร็วกว่าการเจนที่ความละเอียดปลายทางตรง ๆ
 dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors "$COMFY/models/latent_upscale_models"
@@ -126,6 +144,9 @@ clone https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler \
 # ช่องนั้นรับ IMAGE ไม่ใช่ VIDEO โหนด Load Video ของคอร์จึงต่อตรงเข้าไปไม่ได้
 clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite \
       comfyui-videohelpersuite 1.7.9
+# ComfyUI-Darkroom -- โหนดเกรดสีและฟิล์มสต็อก workflow ละครของเราต่อ
+# DarkroomFilmStockColor ไว้ท้าย VAEDecode ถ้าไม่มีแพ็กนี้ workflow จะตกทันทีที่คิว
+clone https://github.com/jeremieLouvaert/ComfyUI-Darkroom ComfyUI-Darkroom de6d4a8
 
 # --- 4. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง

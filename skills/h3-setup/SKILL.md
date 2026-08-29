@@ -59,6 +59,7 @@ python3 precheck.py --target <ที่ที่จะติดตั้ง>
 python3 precheck.py                # เครื่องนี้ไหวมั้ย -- รันบนเครื่องเปล่าได้
 bash install_comfy.sh              # ข้ามถ้ามี ComfyUI อยู่แล้ว (Linux เท่านั้น)
 export HF_TOKEN=hf_xxxx
+export CIVITAI_TOKEN=xxxx          # ไม่บังคับ -- ถ้าจะเอา LoRA เนื้อภาพด้วย
 bash setup.sh                      # ตรวจ → โหลด → node → แพตช์ → restart → จด machine.json
 ```
 
@@ -71,6 +72,7 @@ bash setup.sh                      # ตรวจ → โหลด → node → 
 python precheck.py
 powershell -ExecutionPolicy Bypass -File install_comfy.ps1   # โหลด portable + แตก + เปิด
 $env:HF_TOKEN = "hf_xxxx"
+$env:CIVITAI_TOKEN = "xxxx"        # ไม่บังคับ -- ถ้าจะเอา LoRA เนื้อภาพด้วย
 powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
@@ -80,6 +82,26 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 แค่ช้ากว่าที่ควรหลายเท่า — ที่บ้านเคยเสียไปครึ่งวันเพราะ SageAttention ยังเป็น 1.0.6
 (ไม่มี path ของ Blackwell) บวก torch ที่ build กับ CUDA 12.8 รวมกันช้ากว่าที่ควร **5.2 เท่า**
 ถ้าปล่อยให้โหลด 38 GB จบก่อนค่อยรู้ ก็จ่ายค่าเช่าไปแล้ว
+
+## LoRA เนื้อภาพ กับ CIVITAI_TOKEN
+
+`setup.sh` โหลด **"Minimax H3 Authentic cinematic texture"** ให้ด้วย ถ้าตั้ง
+`CIVITAI_TOKEN` ไว้ ถ้าไม่ตั้งมันจะข้ามแล้วบอกวิธี ไม่ล้มทั้งสคริปต์
+
+**มันแก้สองอย่างที่พรอมป์ตสั่งแล้วไม่เป็นผล** วัดบนคลิปเดียวกัน seed เดียวกัน
+
+| | ไม่มี LoRA | ที่ strength 0.7 |
+|---|---|---|
+| จุดดำ L* p1 | **1.5 จมสนิท** | **4.1 มีรายละเอียด** |
+| ความอิ่มสี | 141 | 98 |
+
+พรอมป์ตที่เขียนสั่งไว้ตรงๆ ว่า "เงาห้ามต่ำกว่า L* 18" กับ "อิ่มสี 52/255" ได้ผลจริง
+เป็น 1.5 กับ 141 คือ **แทบไม่ฟังเลย** ส่วน LoRA แก้ให้ได้ทันที
+
+**ดันเกิน 0.7 ไม่ได้อะไรเพิ่ม** ที่ 1.0 ดำนิ่งอยู่ที่ 4.0 เท่าเดิม แต่ส่วนสว่างร่วงจาก
+73 เหลือ 67 และคอนทราสต์เหลือ 16.6 ภาพจะทึบและแบน
+
+โทเคนเอาจาก https://civitai.com/user/account (CivitAI บังคับโทเคนแม้โมเดลจะเปิดสาธารณะ)
 
 ## สิ่งที่แต่ละสคริปต์แก้
 
