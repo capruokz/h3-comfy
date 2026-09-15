@@ -53,7 +53,7 @@ cr.concat(clips, "FULL.mp4")
 | `200` `201` | `LoadImage` | รูปตัวละคร |
 | `210` `211` | `LoadAudio` | ไฟล์เสียงอ้างอิง |
 | `215` `216` | `H3ReferenceAudio` | `max_seconds` = 0.6 ตัดเสียงอ้างอิงให้สั้นก่อนเข้า `137` |
-| `127` | `UNETLoader` | `unet_name` ต้องเป็น `ref2va` (การ์ด 16 GB ใช้ GGUF ดู h3-setup) |
+| `127` | `UNETLoader` | `unet_name` = `minimax_h3_fl2va_pruned_INT4Q` คู่กับ turbo_v4 LoRA ห้ามเปลี่ยนโดยไม่วัดเทียบ |
 
 ## กฎที่ทำให้ลูปนี้ไม่พังเงียบ
 
