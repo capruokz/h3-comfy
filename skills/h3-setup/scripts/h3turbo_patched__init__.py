@@ -3,7 +3,8 @@
 # ผู้สร้างเดิม: Larryvrh  ·  สัญญาอนุญาต: Apache License 2.0
 #
 # THIS FILE HAS BEEN MODIFIED from the original work.
-# แก้ให้ sampler ทำงานได้เมื่อมี ref เสียงแบบเดี่ยวต่ออยู่ และให้ตรวจเองว่า ComfyUI
+# แก้ให้ sampler ทำงานได้เมื่อมี ref เสียงแบบเดี่ยวต่ออยู่ ให้โหลด LoRA ได้กับโมเดลที่ไม่มีคีย์
+# diffusion_model. นำหน้า (ไฟล์บีบอัด INT4/GGUF) และให้ตรวจเองว่า ComfyUI
 # รุ่นที่รันอยู่มี ModelSamplingAV แล้วหรือยัง รายละเอียดอยู่ในไฟล์ NOTICE ที่รากรีโป
 #
 # สำเนาของ Apache License 2.0 อยู่ที่ไฟล์ LICENSE ที่รากรีโป
@@ -311,7 +312,9 @@ def _apply_bypass_lora(new_model, lora, modules, strength):
     model_lora_keys_unet does not recognise the H3 lora naming, so build the key
     map directly (module -> diffusion_model.<module>.weight). Adapters are wrapped
     in _FrugalLoRA for the in-place additive path (see its docstring)."""
-    key_map = {m: "diffusion_model.{}.weight".format(m) for m in modules}
+    has_dm = hasattr(new_model.model, "diffusion_model")
+    prefix = "diffusion_model." if has_dm else ""
+    key_map = {m: "{}{}.weight".format(prefix, m) for m in modules}
     loaded = comfy.lora.load_lora(lora, key_map, log_missing=False)
     manager = comfy.weight_adapter.BypassInjectionManager()
     sd_keys = set(new_model.model.state_dict().keys())
@@ -338,7 +341,9 @@ def _apply_merge_lora(new_model, lora, modules, strength):
     GPUs run, but on a quantized base the delta is partly rounded away when it is
     merged back into int8/fp8 (and on bf16 it sits near the ULP), i.e. softer than
     the bypass path — the sharpness/VRAM trade the low_vram switch exposes."""
-    key_map = {m: "diffusion_model.{}.weight".format(m) for m in modules}
+    has_dm = hasattr(new_model.model, "diffusion_model")
+    prefix = "diffusion_model." if has_dm else ""
+    key_map = {m: "{}{}.weight".format(prefix, m) for m in modules}
     loaded = comfy.lora.load_lora(lora, key_map, log_missing=False)
     return len(new_model.add_patches(loaded, strength))
 
@@ -398,10 +403,12 @@ def _inject_adaln_egrid(new_model, dm, lora, adaln, strength):
 
     new_model.add_wrapper_with_key(
         comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, "h3turbo", wrap)
+    has_dm = hasattr(new_model.model, "diffusion_model")
+    prefix = "diffusion_model." if has_dm else ""
     for name in adaln:                       # name = "....adaln_proj.linear"
         a = lora[name + ".lora_A.weight"]
         b = lora[name + ".lora_B.weight"] * strength
-        key = "diffusion_model." + name.rsplit(".linear", 1)[0]
+        key = prefix + name.rsplit(".linear", 1)[0]
         new_model.add_object_patch(
             key + ".forward",
             _make_adaln_forward(new_model.get_model_object(key), a, b, shared))
@@ -483,8 +490,15 @@ class MiniMaxH3TurboLoRA:
     def apply_lora(self, model, lora_name, strength, low_vram=False):
         path = folder_paths.get_full_path("loras", lora_name)
         lora = comfy.utils.load_torch_file(path, safe_load=True)
-        dm = model.model.diffusion_model
+        dm = getattr(model.model, "diffusion_model", model.model)
         pruned = getattr(dm, "use_adaln_curves", False)
+        cleaned_lora = {}
+        for k, v in lora.items():
+            if k.startswith("diffusion_model."):
+                cleaned_lora[k[len("diffusion_model."):]] = v
+            else:
+                cleaned_lora[k] = v
+        lora = cleaned_lora
         modules = sorted({k.rsplit(".lora_", 1)[0] for k in lora})
         new_model = model.clone()
         mode = "merge" if low_vram else "bypass"

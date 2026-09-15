@@ -263,11 +263,11 @@
         0
       ],
       "ref_audios.ref_audio_0": [
-        "210",
+        "215",
         0
       ],
       "ref_audios.ref_audio_1": [
-        "211",
+        "216",
         0
       ]
     },
@@ -360,6 +360,32 @@
     "class_type": "SolAttnPatch",
     "_meta": {
       "title": "Patch Sol-Attn"
+    }
+  },
+  "215": {
+    "inputs": {
+      "max_seconds": 0.6,
+      "audio": [
+        "210",
+        0
+      ]
+    },
+    "class_type": "H3ReferenceAudio",
+    "_meta": {
+      "title": "H3 Reference Audio (<Audio 1>)"
+    }
+  },
+  "216": {
+    "inputs": {
+      "max_seconds": 0.6,
+      "audio": [
+        "211",
+        0
+      ]
+    },
+    "class_type": "H3ReferenceAudio",
+    "_meta": {
+      "title": "H3 Reference Audio (<Audio 2>)"
     }
   }
 }

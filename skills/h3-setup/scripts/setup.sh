@@ -87,26 +87,12 @@ export HF_HUB_DISABLE_XET="${HF_HUB_DISABLE_XET:-0}"
 dl() { echo ">> $2"; hf download "$1" "$2" --local-dir "$3"; }
 
 # --- 2. โมเดล รวม 38.0 GB ----------------------------------------------------
-# fl2va ไม่ใช่ ref2va ชุดเก่าเคยโหลด ref2va มาทั้งที่ workflow ของตัวเองเรียก fl2va
-# จึงโหลดไม่ขึ้นตั้งแต่แรก อยู่รีโปเดียวกัน ต่างกันคำเดียว
 mkdir -p "$COMFY"/models/{diffusion_models,text_encoders,vae,loras,latent_upscale_models}
-# โมเดลหลัก -- ต้องเป็น ref2va ไม่ใช่ fl2va
-# workflow ละครใช้โหนด MiniMaxH3ReferenceToVideo ซึ่งเป็นงาน reference-to-video
-# ถ้าโหลด fl2va (first-last-frame) มาใส่ มันจะ "ไม่ error" เพราะโครงสร้างเหมือนกัน
-# แต่ภาพจะนุ่ม หน้าบิดเป็นบางจังหวะ และท่าทางไม่ตรงกับที่สั่ง -- พังแบบเงียบ
-# วัดบนคลิปเดียวกัน seed เดียวกัน: ความคม 22.5 -> 44.3 และเวลา 173 -> 118 วินาที
-#
-# fp8_scaled ต้องการ VRAM 32 GB (5090) การ์ด 16 GB ใส่ไม่ได้ ใช้ GGUF แทนข้างล่าง
-VRAM_GB="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 || echo 0)"
-VRAM_GB=$(( ${VRAM_GB:-0} / 1024 ))
-echo ">> การ์ดมี VRAM ${VRAM_GB} GB"
-if [ "$VRAM_GB" -ge 30 ]; then
-  dl Comfy-Org/MiniMax-H3 diffusion_models/minimax_h3_ref2va_pruned_fp8_scaled.safetensors "$COMFY/models"
-else
-  echo "!! VRAM ต่ำกว่า 30 GB -- fp8 (21 GB) ใส่ไม่ได้ ใช้ GGUF แทน"
-  mkdir -p "$COMFY/models/unet"
-  dl joeygambino/MiniMax-H3-curve-GGUF ref2va/MiniMax-H3-ref2va-curve-Q5_1.gguf "$COMFY/models/unet"
-fi
+# โมเดลหลัก -- ตัวเดียวกับเครื่องที่ใช้เจนงานจริง: fl2va INT4Q (18.5 GB) คู่กับ turbo_v4 LoRA
+# วัด 11 ก.ย. 2569 ช็อตเดียวกัน 0.6 MP: fl2va INT4Q + turbo_v4 ความคม 317.6 ·
+# ref2va INT4Q + ref2v_turbo_4step ได้ 221.3 -- ตระกูลโมเดลต้องดูคู่กับ LoRA ไม่ใช่กฎเดี่ยว
+# INT4Q ใช้ VRAM ราว 8 GB ใช้ไฟล์เดียวกันได้ทั้งการ์ด 16 GB และ 32 GB
+dl tsolful/Minimax_H3_INT4MixedConvRot minimax_h3_fl2va_pruned_INT4Q.safetensors "$COMFY/models/diffusion_models"
 dl Comfy-Org/MiniMax-H3 text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors "$COMFY/models"
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_video_vae_fp16.safetensors "$COMFY/models"
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_audio_vae_fp32.safetensors "$COMFY/models"
@@ -163,12 +149,14 @@ clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite \
 # ComfyUI-Darkroom -- โหนดเกรดสีและฟิล์มสต็อก workflow ละครของเราต่อ
 # DarkroomFilmStockColor ไว้ท้าย VAEDecode ถ้าไม่มีแพ็กนี้ workflow จะตกทันทีที่คิว
 clone https://github.com/jeremieLouvaert/ComfyUI-Darkroom ComfyUI-Darkroom de6d4a8
-# สองแพ็กนี้จำเป็นเฉพาะเส้นทาง GGUF (การ์ดต่ำกว่า 30 GB)
+# ComfyUI-GGUF ไม่ได้ใช้กับ workflow หลักแล้ว (โมเดลหลักเป็น INT4Q) เก็บไว้ให้คนที่อยากลองไฟล์ .gguf
 # ComfyUI-GGUF ให้โหนด UnetLoaderGGUF
 # ComfyUI-H3-Multishot สอนสถาปัตยกรรม minimax_h3 ให้ ComfyUI-GGUF ตอนบูต
 # ถ้าไม่มีตัวหลัง จะโหลดไฟล์ .gguf ไม่ขึ้นเลย ฟ้องว่าไม่รู้จักสถาปัตยกรรม
 clone https://github.com/city96/ComfyUI-GGUF ComfyUI-GGUF HEAD
-clone https://github.com/jlucasmcrell/ComfyUI-H3-Multishot ComfyUI-H3-Multishot HEAD
+# ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ที่ตัด ref เสียง
+# ให้เหลือ 0.6 วิ -- ทุกการ์ดต้องมี ไม่ใช่เฉพาะ GGUF ล็อกคอมมิตไว้ตามที่ใช้งานจริง
+clone https://github.com/jlucasmcrell/ComfyUI-H3-Multishot ComfyUI-H3-Multishot d7d1977
 
 # --- 4. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง

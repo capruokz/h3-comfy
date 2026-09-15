@@ -89,24 +89,13 @@ function Get-Model($repo, $file, $dir) {
 }
 
 # --- 3. โมเดล รวม 38.0 GB ----------------------------------------------------
-# fl2va ไม่ใช่ ref2va -- อยู่รีโปเดียวกัน ต่างกันคำเดียว แต่ workflow เรียก fl2va
 foreach ($sub in @("diffusion_models", "text_encoders", "vae", "loras",
                    "latent_upscale_models")) {
     New-Item -ItemType Directory -Force (Join-Path $Comfy "models\$sub") | Out-Null
 }
-# โมเดลหลัก -- ต้องเป็น ref2va ไม่ใช่ fl2va
-# โหนด MiniMaxH3ReferenceToVideo เป็นงาน reference-to-video ถ้าใส่ fl2va จะไม่ error
-# แต่ภาพนุ่ม หน้าบิด ท่าเพี้ยน -- วัดแล้ว ความคม 22.5 -> 44.3 เวลา 173 -> 118 วินาที
-$vramMiB = 0
-try { $vramMiB = [int](& nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | Select-Object -First 1) } catch {}
-$vramGB = [math]::Floor($vramMiB / 1024)
-Write-Host ">> การ์ดมี VRAM $vramGB GB"
-if ($vramGB -ge 30) {
-    Get-Model "Comfy-Org/MiniMax-H3" "diffusion_models/minimax_h3_ref2va_pruned_fp8_scaled.safetensors" (Join-Path $Comfy "models")
-} else {
-    Write-Host "!! VRAM ต่ำกว่า 30 GB -- fp8 (21 GB) ใส่ไม่ได้ ใช้ GGUF แทน"
-    Get-Model "joeygambino/MiniMax-H3-curve-GGUF" "ref2va/MiniMax-H3-ref2va-curve-Q5_1.gguf" (Join-Path $Comfy "models\unet")
-}
+# โมเดลหลัก -- ตัวเดียวกับเครื่องที่ใช้เจนงานจริง: fl2va INT4Q (18.5 GB) คู่กับ turbo_v4 LoRA
+# วัด 11 ก.ย. 2569: ความคม 317.6 เทียบ ref2va INT4Q + ref2v_turbo 221.3 · ใช้ VRAM ราว 8 GB ทุกการ์ด
+Get-Model "tsolful/Minimax_H3_INT4MixedConvRot" "minimax_h3_fl2va_pruned_INT4Q.safetensors" (Join-Path $Comfy "models\diffusion_models")
 Get-Model "Comfy-Org/MiniMax-H3" "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" (Join-Path $Comfy "models")
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_video_vae_fp16.safetensors" (Join-Path $Comfy "models")
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_audio_vae_fp32.safetensors" (Join-Path $Comfy "models")
@@ -164,7 +153,8 @@ Get-Node "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite" "comfyui-vide
 Get-Node "https://github.com/jeremieLouvaert/ComfyUI-Darkroom" "ComfyUI-Darkroom" "de6d4a8"
 # จำเป็นเฉพาะเส้นทาง GGUF: UnetLoaderGGUF + ตัวสอนสถาปัตยกรรม minimax_h3 ให้มัน
 Get-Node "https://github.com/city96/ComfyUI-GGUF" "ComfyUI-GGUF" "HEAD"
-Get-Node "https://github.com/jlucasmcrell/ComfyUI-H3-Multishot" "ComfyUI-H3-Multishot" "HEAD"
+# ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ทุกการ์ดต้องมี
+Get-Node "https://github.com/jlucasmcrell/ComfyUI-H3-Multishot" "ComfyUI-H3-Multishot" "d7d1977"
 
 # --- 5. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์
