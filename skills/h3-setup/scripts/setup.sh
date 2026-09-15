@@ -168,7 +168,9 @@ clone https://github.com/jeremieLouvaert/ComfyUI-Darkroom ComfyUI-Darkroom de6d4
 # ComfyUI-H3-Multishot สอนสถาปัตยกรรม minimax_h3 ให้ ComfyUI-GGUF ตอนบูต
 # ถ้าไม่มีตัวหลัง จะโหลดไฟล์ .gguf ไม่ขึ้นเลย ฟ้องว่าไม่รู้จักสถาปัตยกรรม
 clone https://github.com/city96/ComfyUI-GGUF ComfyUI-GGUF HEAD
-clone https://github.com/jlucasmcrell/ComfyUI-H3-Multishot ComfyUI-H3-Multishot HEAD
+# ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ที่ตัด ref เสียง
+# ให้เหลือ 0.6 วิ -- ทุกการ์ดต้องมี ไม่ใช่เฉพาะ GGUF ล็อกคอมมิตไว้ตามที่ใช้งานจริง
+clone https://github.com/jlucasmcrell/ComfyUI-H3-Multishot ComfyUI-H3-Multishot d7d1977
 
 # --- 4. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง

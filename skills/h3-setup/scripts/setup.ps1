@@ -164,7 +164,8 @@ Get-Node "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite" "comfyui-vide
 Get-Node "https://github.com/jeremieLouvaert/ComfyUI-Darkroom" "ComfyUI-Darkroom" "de6d4a8"
 # จำเป็นเฉพาะเส้นทาง GGUF: UnetLoaderGGUF + ตัวสอนสถาปัตยกรรม minimax_h3 ให้มัน
 Get-Node "https://github.com/city96/ComfyUI-GGUF" "ComfyUI-GGUF" "HEAD"
-Get-Node "https://github.com/jlucasmcrell/ComfyUI-H3-Multishot" "ComfyUI-H3-Multishot" "HEAD"
+# ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ทุกการ์ดต้องมี
+Get-Node "https://github.com/jlucasmcrell/ComfyUI-H3-Multishot" "ComfyUI-H3-Multishot" "d7d1977"
 
 # --- 5. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์
