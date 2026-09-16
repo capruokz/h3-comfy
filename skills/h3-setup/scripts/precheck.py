@@ -26,6 +26,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 NEED_DISK_GB = 100          # โมเดล 38 GB + ComfyUI ~5 GB + ที่เหลือไว้เก็บคลิป
 NEED_VRAM_GB = 15
 BLACKWELL = (10, 0)         # compute capability ของ RTX 50 ซีรีส์ = 12.0 · B200 = 10.0
+ADA = (8, 9)                # RTX 40 ซีรีส์ ใช้ได้แบบทดลอง: int8 ได้ แต่ NVFP4 ต้องคลายตอนคำนวณ
 
 rows = []
 stop = None                 # เหตุผลที่ติดตั้งไม่ได้ ถ้ามี
@@ -117,10 +118,16 @@ def main():
             cap = (0, 0)
         vram = float(vram_mib) / 1024
         blackwell = cap >= BLACKWELL
+        ada = ADA <= cap < BLACKWELL
 
-        row("การ์ดจอ", f"{name}  (compute {cap_s})", "ok" if blackwell else "bad",
-            "" if blackwell else "ชุดนี้รองรับเฉพาะ RTX 50 ซีรีส์ขึ้นไป")
-        if not blackwell:
+        if blackwell:
+            row("การ์ดจอ", f"{name}  (compute {cap_s})", "ok")
+        elif ada:
+            row("การ์ดจอ", f"{name}  (compute {cap_s})", "warn",
+                "RTX 40 ซีรีส์ ใช้ได้แบบทดลอง ตัวอ่านพรอมป์ท NVFP4 จะคลายตอนคำนวณ (ช้าลงเล็กน้อย)")
+        else:
+            row("การ์ดจอ", f"{name}  (compute {cap_s})", "bad",
+                "ชุดนี้รองรับเฉพาะ RTX 50 ซีรีส์ขึ้นไป (RTX 40 ซีรีส์แบบทดลอง)")
             stop = stop or "oldgpu"
 
         row("ไดรเวอร์", drv, "ok")
