@@ -14,10 +14,12 @@
 คลิปก็ออกมาสวยดี แค่จ่ายค่าเช่าเพิ่มสามเท่าโดยไม่รู้ตัว
 """
 import importlib.metadata as md
+import re
 import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
 
+ADA = (8, 9)                 # RTX 40 ซีรีส์ ทดลอง: int8 ได้ NVFP4 คลายตอนคำนวณ
 BLACKWELL = (10, 0)          # sm_100 = B200 · sm_120 = RTX 50 ซีรีส์ · ต่ำกว่านี้คือรุ่นเก่ากว่า
 WANT_CUDA = (13, 0)          # cu128 วัดได้ว่าช้ากว่า 1.84 เท่าบน sm_120
 WANT_SAGE = (2, 2)           # 1.x ไม่มี path ของ Blackwell เลย ใส่แล้วแอบช้า
@@ -69,18 +71,22 @@ if torch is not None:
         cap = torch.cuda.get_device_capability(0)
         gpu = torch.cuda.get_device_name(0)
 
-        if cap < BLACKWELL:
+        if cap < ADA:
             too_old = True
             row("การ์ดจอ", f"{gpu}  (sm_{cap[0]}{cap[1]} · {name_of(cap)})", "FAIL",
                 "ชุดนี้รองรับเฉพาะ RTX 50 ซีรีส์ขึ้นไป — ดูวิธีเลือกเครื่องใหม่ข้างล่าง")
         else:
-            row("การ์ดจอ", f"{gpu}  (sm_{cap[0]}{cap[1]} · Blackwell)", "PASS")
+            if cap >= BLACKWELL:
+                row("การ์ดจอ", f"{gpu}  (sm_{cap[0]}{cap[1]} · Blackwell)", "PASS")
+            else:
+                row("การ์ดจอ", f"{gpu}  (sm_{cap[0]}{cap[1]} · {name_of(cap)})", "WARN",
+                    "RTX 40 ซีรีส์ใช้ได้แบบทดลอง ตัวอ่านพรอมป์ท NVFP4 จะคลายตอนคำนวณ ยังไม่มีผลวัดความเร็ว")
 
             # torch build มาสำหรับสถาปัตยกรรมชุดหนึ่ง ถ้าการ์ดใบนี้ไม่อยู่ในชุดนั้น
             # มันจะช้ามากหรือพังไปเลย เช็คตรงๆ ดีกว่าเดาจากเลขเวอร์ชัน
             mine = f"sm_{cap[0]}{cap[1]}"
             arch = torch.cuda.get_arch_list()
-            has = any(a.replace("compute_", "sm_") == mine for a in arch)
+            has = any((lambda m: m and int(m.group(1)) == cap[0] and int(m.group(2)) <= cap[1])(re.fullmatch(r"(?:sm|compute)_(\d+?)(\d)", a)) for a in arch)
             row("torch รองรับการ์ดใบนี้มั้ย", f"{mine} {'อยู่ใน' if has else 'ไม่อยู่ใน'} {arch}",
                 "PASS" if has else "FAIL",
                 "PyTorch ในเครื่องนี้ build มาโดยไม่รองรับการ์ดใบนี้ — รัน  bash setup.sh --fix")

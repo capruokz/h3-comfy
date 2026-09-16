@@ -41,7 +41,8 @@ import torch
 cap = torch.cuda.get_device_capability(0)
 cu = tuple(int(x) for x in (torch.version.cuda or "0.0").split(".")[:2])
 mine = f"sm_{cap[0]}{cap[1]}"
-ok = any(a.replace("compute_", "sm_") == mine for a in torch.cuda.get_arch_list())
+# การ์ดรันโค้ดที่ build ให้รุ่นเดียวกันแต่เลขรองต่ำกว่าได้ (sm_86 ใช้กับ 4090 sm_89)
+ok = any((lambda m: m and int(m.group(1)) == cap[0] and int(m.group(2)) <= cap[1])(__import__("re").fullmatch(r"(?:sm|compute)_(\d+?)(\d)", a)) for a in torch.cuda.get_arch_list())
 print("no" if (ok and cu >= (13, 0)) else "yes")
 PYEOF
 )"
