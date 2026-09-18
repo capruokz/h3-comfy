@@ -85,7 +85,7 @@ export HF_HUB_DISABLE_XET="${HF_HUB_DISABLE_XET:-0}"
 [ -n "${HF_TOKEN:-}" ] && { hf auth login --token "$HF_TOKEN" 2>/dev/null || true; } \
   || echo "!! ไม่ได้ตั้ง HF_TOKEN -- จะโดนจำกัดความเร็ว ดู guides/02-hf-token.md"
 
-dl() { echo ">> $2"; hf download "$1" "$2" --local-dir "$3"; }
+dl() { echo ">> $2"; hf download "$1" "$2" --local-dir "$3" ${4:+--revision "$4"}; }  # arg 4 = revision (ไม่ใส่ = main)
 
 # --- 2. โมเดล รวม 38.0 GB ----------------------------------------------------
 mkdir -p "$COMFY"/models/{diffusion_models,text_encoders,vae,loras,latent_upscale_models}
@@ -118,7 +118,9 @@ else
 fi
 # ตัวขยาย latent 3D 691 MB -- ใช้กับสูตรเจนฐานความละเอียดต่ำแล้วขยาย ซึ่งได้ภาพ
 # คมกว่าและเร็วกว่าการเจนที่ความละเอียดปลายทางตรง ๆ
-dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors "$COMFY/models/latent_upscale_models"
+# ล็อก revision ไว้: 17 ก.ย. 2569 เจ้าของรีโปย้ายไฟล์ไปโฟลเดอร์ minimax_h3_latent_upscaler_3d_conv_v1/
+# และเปลี่ยนชื่อ ทำให้ชื่อเดิมบน main หายไป (File not found) ไฟล์ข้างในตัวเดียวกัน sha256 4f57821f...
+dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors "$COMFY/models/latent_upscale_models" 13ccf95d85d120bdbc92c05b1247a6e147bf54bf
 
 # --- 3. custom node ล็อกคอมมิตไว้ --------------------------------------------
 # หกชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,

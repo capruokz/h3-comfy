@@ -78,13 +78,14 @@ $dlPy = Join-Path $env:TEMP "h3_dl.py"
 import sys
 from huggingface_hub import hf_hub_download
 repo, filename, target = sys.argv[1], sys.argv[2], sys.argv[3]
-p = hf_hub_download(repo, filename, local_dir=target)
+revision = sys.argv[4] if len(sys.argv) > 4 else None
+p = hf_hub_download(repo, filename, local_dir=target, revision=revision)
 print(p)
 '@ | Set-Content -Path $dlPy -Encoding UTF8
 
-function Get-Model($repo, $file, $dir) {
+function Get-Model($repo, $file, $dir, $rev = $null) {
     Write-Host ">> $file"
-    & $Python $dlPy $repo $file $dir
+    if ($rev) { & $Python $dlPy $repo $file $dir $rev } else { & $Python $dlPy $repo $file $dir }
     if ($LASTEXITCODE -ne 0) { Write-Host "โหลด $file ไม่สำเร็จ"; exit 1 }
 }
 
@@ -100,7 +101,8 @@ Get-Model "Comfy-Org/MiniMax-H3" "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_video_vae_fp16.safetensors" (Join-Path $Comfy "models")
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_audio_vae_fp32.safetensors" (Join-Path $Comfy "models")
 Get-Model "larryvrh/MiniMax-H3-Turbo-Lora" "minimax_h3_turbo_v4_step600_ema.safetensors" (Join-Path $Comfy "models\loras")
-Get-Model "LBH-123-AI/Minimax_h3_latent_Upscaler" "minimax_h3_latent_upscaler_3d_bf16.safetensors" (Join-Path $Comfy "models\latent_upscale_models")
+# ล็อก revision ไว้: 17 ก.ย. 2569 เจ้าของรีโปย้ายไฟล์ไปโฟลเดอร์ใหม่และเปลี่ยนชื่อ ชื่อเดิมบน main หายไป
+Get-Model "LBH-123-AI/Minimax_h3_latent_Upscaler" "minimax_h3_latent_upscaler_3d_bf16.safetensors" (Join-Path $Comfy "models\latent_upscale_models") "13ccf95d85d120bdbc92c05b1247a6e147bf54bf"
 
 # LoRA เนื้อภาพ "Authentic cinematic texture" -- ดันดำที่จมสนิทให้กลับมามีรายละเอียด
 # (L* p1 จาก 1.5 ขึ้นเป็น 4.1) และลดอิ่มสีจาก 141 เหลือ 98 ใช้ที่ strength 0.7
