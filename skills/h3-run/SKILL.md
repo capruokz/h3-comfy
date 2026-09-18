@@ -65,6 +65,17 @@ cr.concat(clips, "FULL.mp4")
 | `workflow/h3_singularity_draft_api.json` | **ดราฟ** = รอบแรกอย่างเดียว ไม่ขยาย + เซฟ latent | 156 วิ |
 | `workflow/h3_singularity_final_api.json` | **เจนจริง** จาก latent ของดราฟ: ขยาย + 1 step | 141 วิ |
 
+**สูตรการ์ดเช่า (5090):** ไฟล์ชุด `h3_singularity_rent_*.json` โครงเดียวกันทุกโหนด ต่างแค่ค่า
+0.4 MP → ขยายเป็น **1.0 MP**, beta **10 step แบ่ง 8+2** — บน RTX 5090 คลิป 9 วิ 94 วิ ได้ 1376x768
+ความคม 163.8 (สูตรบนคือ 68 วิ, 98.3) วัด 19 ก.ย. 2569 ดราฟกับ final ต้องใช้ชุดเดียวกัน
+ห้ามเอาดราฟของสูตร 5060 Ti ไปต่อกับ final ของสูตรเช่า (sigma คนละชุด)
+
+| ไฟล์ | ทำอะไร |
+|---|---|
+| `workflow/h3_singularity_rent_api.json` | เจนรวดเดียว 0.4 → 1.0 MP 8+2 |
+| `workflow/h3_singularity_rent_draft_api.json` | ดราฟ: รอบแรก 8 step ที่ 0.4 MP + เซฟ latent |
+| `workflow/h3_singularity_rent_final_api.json` | เจนจริงจาก latent: ขยายเป็น 1.0 MP + 2 step |
+
 ดราฟ + เจนจริง ได้คลิป**เหมือนเจนรวดเดียวทุกพิกเซล** (PSNR inf, seed เดียวกัน) ดราฟที่ผ่านจึงไม่มีทางออกมาเป็นอีกแบบตอนเจนจริง
 ช็อตที่ไม่ผ่านเสียแค่ค่าดราฟ
 
