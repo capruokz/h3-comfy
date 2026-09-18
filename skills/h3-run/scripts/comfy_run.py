@@ -16,6 +16,7 @@
     python comfy_run.py status
     python comfy_run.py last-frame G:\\out\\clip1.mp4
     python comfy_run.py concat G:\\out c1.mp4 c2.mp4 c3.mp4 --out full.mp4
+    python comfy_run.py stash-latents shot01            # ดราฟ Singularity -> input/shot01_v.latent, _a.latent
 
 ทุก setter มี assert เพราะความพังที่แพงที่สุดคือความพังที่เงียบ: node id ผิดตัวเดียว
 แล้วโปรแกรมยังวิ่งจนจบ ได้คลิปที่ไม่มีการแก้อยู่ในนั้นเลย เสียเวลาเรนเดอร์ไปเปล่าๆ
@@ -226,6 +227,25 @@ def last_frame(video, png=None, install_to_input=True):
     return install(png) if install_to_input else png.name
 
 
+def stash_latents(name, prefix="h3_latent/clip"):
+    """ย้าย latent ของดราฟ Singularity จาก output/ ไป input/ ให้ LoadLatent ของ workflow final อ่านได้
+
+    workflow ดราฟเซฟสองไฟล์ (ภาพ `<prefix>_v_*.latent` กับเสียง `<prefix>_a_*.latent`)
+    เพราะ SaveLatent เก็บ latent ภาพ+เสียงรวมกันไม่ได้ ฟังก์ชันนี้หยิบไฟล์ล่าสุดของแต่ละชุด
+    แล้ววางเป็น `<name>_v.latent` / `<name>_a.latent` คืน (ชื่อภาพ, ชื่อเสียง) ไว้เซ็ตให้โหนด 511 512
+
+    **ตั้ง prefix ในโหนด 509 510 ไม่ให้ซ้ำต่อคลิป** ไม่งั้นไฟล์ล่าสุดอาจเป็นของคลิปอื่นที่คิวรัว
+    """
+    out = []
+    for part in ("v", "a"):
+        src = sorted(comfy_out().glob(f"{prefix}_{part}_*.latent"), key=lambda f: f.stat().st_mtime)
+        assert src, f"ไม่เจอ {prefix}_{part}_*.latent ใน {comfy_out()} -- รันดราฟก่อน"
+        dst = f"{name}_{part}.latent"
+        shutil.copy(src[-1], comfy_in() / dst)
+        out.append(dst)
+    return tuple(out)
+
+
 def concat(clips, out, cwd=None):
     """ต่อคลิปที่พารามิเตอร์เข้ารหัสเหมือนกัน โดยไม่เข้ารหัสใหม่"""
     clips = [Path(c) for c in clips]
@@ -261,6 +281,8 @@ def main():
     elif cmd == "last-frame":
         for v in sys.argv[2:]:
             print(last_frame(v), "-> ", comfy_in())
+    elif cmd == "stash-latents":
+        print(stash_latents(*sys.argv[2:4]), "-> ", comfy_in())
     elif cmd == "concat":
         args = sys.argv[2:]
         out = "full.mp4"

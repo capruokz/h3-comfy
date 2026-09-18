@@ -85,7 +85,7 @@ H3 เจนคลิปวิดีโอที่มีทั้งภาพ�
 | | ขั้นต่ำ | หมายเหตุ |
 |---|---|---|
 | **การ์ดจอ** | **NVIDIA RTX 50 ซีรีส์ · VRAM 16 GB** | **รุ่นอื่นใช้ไม่ได้** ดูข้างล่าง |
-| พื้นที่ว่าง | 100 GB | ตัวโมเดล 38 GB ที่เหลือไว้เก็บคลิป |
+| พื้นที่ว่าง | 100 GB (120 GB ถ้าใช้ Singularity) | ตัวโมเดล 38 GB (+21 GB Singularity) ที่เหลือไว้เก็บคลิป |
 | ComfyUI | **ไม่ต้องมีก่อนก็ได้** | `install_comfy.sh` ลงให้ (Linux) · เครื่องเช่าเลือกเทมเพลตที่มี ComfyUI มาเลยก็ได้ |
 | บัญชี Hugging Face | ฟรี | ใช้โหลดไฟล์โมเดล |
 
@@ -139,6 +139,7 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 h3-comfy/
 ├── guides/            คู่มือจับมือทำ ภาษาชาวบ้าน ไม่ต้องใช้รูป
 ├── workflow/          กราฟ ComfyUI สำหรับ H3 (ทุกคนใช้ตัวเดียวกัน)
+│                      + h3_singularity_*.json สูตรสองรอบ ดราฟ/เจนจริง (ดู skills/h3-run)
 ├── machine.json       ค่าของเครื่องคุณเอง — สร้างโดย setup.sh ตอนติดตั้ง
 └── skills/
     ├── h3-setup/      ติดตั้ง + ตรวจเครื่อง + หาเพดานของการ์ด
@@ -243,6 +244,8 @@ Copy-Item -Recurse h3-comfy\skills\* "$env:USERPROFILE\.claude\skills\"
 - Turbo LoRA — larryvrh
 - โหนด Turbo — Larryvrh/ComfyUI-MiniMax-H3-Turbo
 - KJNodes, SolAttn — kijai
+- Singularity (โมเดลและ workflow ต้นแบบ) — WarmBloodAban / AIGC特异点
+- SolAttnMiniMax — T8mars/comfyui-minimax-h3-audio-T8
 - MMH3 UltimateUpscale — bbaudio-2025
 - โหนดและโมเดลอัพสเกล latent 3D — LBH-123-AI
 - VideoHelperSuite — Kosinkadink

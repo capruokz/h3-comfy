@@ -55,6 +55,51 @@ cr.concat(clips, "FULL.mp4")
 | `215` `216` | `H3ReferenceAudio` | `max_seconds` = 0.6 ตัดเสียงอ้างอิงให้สั้นก่อนเข้า `137` |
 | `127` | `UNETLoader` | `unet_name` = `minimax_h3_fl2va_pruned_INT4Q` คู่กับ turbo_v4 LoRA ห้ามเปลี่ยนโดยไม่วัดเทียบ |
 
+## สูตร Singularity สองรอบ (ภาพคมกว่า เสียงชัดกว่า)
+
+มีสาม workflow ใช้ node id ชุดเดียวกับข้างบน (`137` `129` `133` `115` `92` `200`-`216`) แก้ค่าได้เหมือนเดิม
+
+| ไฟล์ | ทำอะไร | 5060 Ti คลิป 9 วิ |
+|---|---|---|
+| `workflow/h3_singularity_api.json` | เจนรวดเดียว: 0.3 MP 7 step → ขยาย latent เป็น 0.8 MP → อีก 1 step | 285 วิ |
+| `workflow/h3_singularity_draft_api.json` | **ดราฟ** = รอบแรกอย่างเดียว ไม่ขยาย + เซฟ latent | 156 วิ |
+| `workflow/h3_singularity_final_api.json` | **เจนจริง** จาก latent ของดราฟ: ขยาย + 1 step | 141 วิ |
+
+ดราฟ + เจนจริง ได้คลิป**เหมือนเจนรวดเดียวทุกพิกเซล** (PSNR inf, seed เดียวกัน) ดราฟที่ผ่านจึงไม่มีทางออกมาเป็นอีกแบบตอนเจนจริง
+ช็อตที่ไม่ผ่านเสียแค่ค่าดราฟ
+
+```python
+WF = Path("<repo>/workflow")
+d = cr.load(WF / "h3_singularity_draft_api.json")
+# ... set_input prompt / seed / refs เหมือนเดิม ...
+cr.set_input(d, "509", "filename_prefix", "h3_latent/shot01_v")   # ต้องไม่ซ้ำต่อคลิป
+cr.set_input(d, "510", "filename_prefix", "h3_latent/shot01_a")
+cr.run(d, out=OUT / "shot01_draft.mp4")
+# ผู้ใช้ตรวจดราฟผ่านแล้ว:
+v, a = cr.stash_latents("shot01", prefix="h3_latent/shot01")
+f = cr.load(WF / "h3_singularity_final_api.json")
+# ... set_input prompt / seed / refs ชุดเดียวกับดราฟ (conditioning ต้องตรง) ...
+cr.set_input(f, "511", "latent", v)
+cr.set_input(f, "512", "latent", a)
+cr.run(f, out=OUT / "shot01.mp4")
+```
+
+| โหนดเพิ่ม | คือ | หมายเหตุ |
+|---|---|---|
+| `127` | `UNETLoader` | `Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8` |
+| `217` | `SolAttnMiniMax` | ตามค่าของผู้ทำ Singularity (tau 1.3) |
+| `134` | `LoraLoader` | `minimax_h3_ref2v_turbo_4step_v0.1` ที่ 1.0 (ไม่ใช่ `MiniMaxH3TurboLoRA` แบบกราฟหลัก) |
+| `124` | `BasicScheduler` | beta 8 step |
+| `501` | `SplitSigmas` | `step` 7 = รอบแรก 7 รอบขยาย 1 |
+| `503` | `MinimaxH3LatentUpscaler3D` | `mode.megapixels` 0.8 |
+| `509` `510` | `SaveLatent` | ดราฟเท่านั้น: ภาพ / เสียง แยกไฟล์ |
+| `511` `512` | `LoadLatent` | final เท่านั้น: อ่านจาก `input/` |
+
+- **อย่าลดรอบแรกต่ำกว่า 7 step** วัดแล้วเสียงพูดตัวละครแย่ลงชัด (4 step ทั้งแบบ 3+1 และ 2+2) ส่วนภาพคมเพราะการขยาย ไม่ได้มาจาก step
+- **ดราฟแบบหยุดกลางทาง (เช่น step 4 แล้วเดินต่อ) ใช้ไม่ได้** ภาพที่คาดไว้ตอนนั้นเบลอจนดูตำแหน่งฉากไม่ออก
+- **SaveLatent เก็บ latent ภาพ+เสียงรวมกันไม่ได้** (`'NestedTensor' object has no attribute 'contiguous'`) จึงแยกด้วย `LTXVSeparateAVLatent` ก่อน
+- **จับเวลาดราฟซ้ำคลิปเดิมจะหลอก** ComfyUI แคชรอบแรกไว้ถ้าอินพุตเหมือนเดิม
+
 ## กฎที่ทำให้ลูปนี้ไม่พังเงียบ
 
 1. **`set_input` เสมอ อย่าเขียน `wf["129"]["inputs"]["seed"]=s` ตรงๆ** คีย์จริงชื่อ `noise_seed`

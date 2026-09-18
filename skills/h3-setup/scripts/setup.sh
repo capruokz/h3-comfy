@@ -87,7 +87,7 @@ export HF_HUB_DISABLE_XET="${HF_HUB_DISABLE_XET:-0}"
 
 dl() { echo ">> $2"; hf download "$1" "$2" --local-dir "$3" ${4:+--revision "$4"}; }  # arg 4 = revision (ไม่ใส่ = main)
 
-# --- 2. โมเดล รวม 38.0 GB ----------------------------------------------------
+# --- 2. โมเดล รวม 38.0 GB (+21 GB ถ้าใช้ Singularity) ----------------------------------------------------
 mkdir -p "$COMFY"/models/{diffusion_models,text_encoders,vae,loras,latent_upscale_models}
 # โมเดลหลัก -- ตัวเดียวกับเครื่องที่ใช้เจนงานจริง: fl2va INT4Q (18.5 GB) คู่กับ turbo_v4 LoRA
 # วัด 11 ก.ย. 2569 ช็อตเดียวกัน 0.6 MP: fl2va INT4Q + turbo_v4 ความคม 317.6 ·
@@ -121,6 +121,15 @@ fi
 # ล็อก revision ไว้: 17 ก.ย. 2569 เจ้าของรีโปย้ายไฟล์ไปโฟลเดอร์ minimax_h3_latent_upscaler_3d_conv_v1/
 # และเปลี่ยนชื่อ ทำให้ชื่อเดิมบน main หายไป (File not found) ไฟล์ข้างในตัวเดียวกัน sha256 4f57821f...
 dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors "$COMFY/models/latent_upscale_models" 13ccf95d85d120bdbc92c05b1247a6e147bf54bf
+
+# สูตร Singularity สองรอบ (workflow/h3_singularity_*.json) -- เพิ่มอีก 21 GB
+# เจนฐาน 0.3 MP 7 step -> ขยาย latent เป็น 0.8 MP -> อีก 1 step ภาพคมกว่าและเสียงชัดกว่าสูตรหลัก
+# วัด 18 ก.ย. 2569 บน 5060 Ti คลิป 9 วิ: 285 วิ (ดราฟ 156 + เจนจริง 141)
+# ไม่ใช้สูตรนี้ ตั้ง H3_SINGULARITY=0 ก่อนรันเพื่อข้าม
+if [ "${H3_SINGULARITY:-1}" = "1" ]; then
+  dl WarmBloodAban/Minimax-h3_Singularity Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors "$COMFY/models/diffusion_models"
+  dl Comfy-Org/MiniMax-H3 loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors "$COMFY/models"
+fi
 
 # --- 3. custom node ล็อกคอมมิตไว้ --------------------------------------------
 # หกชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
@@ -160,6 +169,14 @@ clone https://github.com/city96/ComfyUI-GGUF ComfyUI-GGUF HEAD
 # ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ที่ตัด ref เสียง
 # ให้เหลือ 0.6 วิ -- ทุกการ์ดต้องมี ไม่ใช่เฉพาะ GGUF ล็อกคอมมิตไว้ตามที่ใช้งานจริง
 clone https://github.com/jlucasmcrell/ComfyUI-H3-Multishot ComfyUI-H3-Multishot d7d1977
+# SolAttnMiniMax -- โหนดไฟล์เดียวของ workflow Singularity (ตัวเดียวกับที่ผู้ทำ Singularity ใช้)
+# มาจากแพ็กใหญ่ของ T8mars แต่เราเอาแค่ไฟล์นี้ ล็อกคอมมิตไว้ ต้องมี comfy_kitchen ที่มี sol_attn
+SOL_DIR="$COMFY/custom_nodes/ComfyUI-SolAttnMiniMax"
+if [ "${H3_SINGULARITY:-1}" = "1" ] && [ ! -f "$SOL_DIR/__init__.py" ]; then
+  mkdir -p "$SOL_DIR"
+  curl -fsSL -o "$SOL_DIR/__init__.py"     https://raw.githubusercontent.com/T8mars/comfyui-minimax-h3-audio-T8/8b379b42bde00a315aee146c8d4285e8caa80a5b/sol_attn_minimax_v2.py     || { rm -rf "$SOL_DIR"; echo "!! โหลด SolAttnMiniMax ไม่สำเร็จ -- workflow Singularity จะรันไม่ได้"; }
+fi
+$PY -c "import comfy_kitchen as c; assert c.sol_attn_is_available()" 2>/dev/null   || echo "!! comfy_kitchen ไม่มี sol_attn -- อัปเดต ComfyUI (pip install -U -r requirements.txt) ก่อนใช้ workflow Singularity"
 
 # --- 4. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง

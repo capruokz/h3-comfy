@@ -89,7 +89,7 @@ function Get-Model($repo, $file, $dir, $rev = $null) {
     if ($LASTEXITCODE -ne 0) { Write-Host "โหลด $file ไม่สำเร็จ"; exit 1 }
 }
 
-# --- 3. โมเดล รวม 38.0 GB ----------------------------------------------------
+# --- 3. โมเดล รวม 38.0 GB (+21 GB ถ้าใช้ Singularity) ----------------------------------------------------
 foreach ($sub in @("diffusion_models", "text_encoders", "vae", "loras",
                    "latent_upscale_models")) {
     New-Item -ItemType Directory -Force (Join-Path $Comfy "models\$sub") | Out-Null
@@ -103,6 +103,14 @@ Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_audio_vae_fp32.safetensors" (Jo
 Get-Model "larryvrh/MiniMax-H3-Turbo-Lora" "minimax_h3_turbo_v4_step600_ema.safetensors" (Join-Path $Comfy "models\loras")
 # ล็อก revision ไว้: 17 ก.ย. 2569 เจ้าของรีโปย้ายไฟล์ไปโฟลเดอร์ใหม่และเปลี่ยนชื่อ ชื่อเดิมบน main หายไป
 Get-Model "LBH-123-AI/Minimax_h3_latent_Upscaler" "minimax_h3_latent_upscaler_3d_bf16.safetensors" (Join-Path $Comfy "models\latent_upscale_models") "13ccf95d85d120bdbc92c05b1247a6e147bf54bf"
+
+# สูตร Singularity สองรอบ (workflow\h3_singularity_*.json) -- เพิ่มอีก 21 GB
+# เจนฐาน 0.3 MP 7 step -> ขยาย latent เป็น 0.8 MP -> อีก 1 step วัดบน 5060 Ti คลิป 9 วิ: 285 วิ
+# ไม่ใช้สูตรนี้ ตั้ง $env:H3_SINGULARITY = "0" ก่อนรันเพื่อข้าม
+if ($env:H3_SINGULARITY -ne "0") {
+    Get-Model "WarmBloodAban/Minimax-h3_Singularity" "Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors" (Join-Path $Comfy "models\diffusion_models")
+    Get-Model "Comfy-Org/MiniMax-H3" "loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors" (Join-Path $Comfy "models")
+}
 
 # LoRA เนื้อภาพ "Authentic cinematic texture" -- ดันดำที่จมสนิทให้กลับมามีรายละเอียด
 # (L* p1 จาก 1.5 ขึ้นเป็น 4.1) และลดอิ่มสีจาก 141 เหลือ 98 ใช้ที่ strength 0.7
@@ -157,6 +165,20 @@ Get-Node "https://github.com/jeremieLouvaert/ComfyUI-Darkroom" "ComfyUI-Darkroom
 Get-Node "https://github.com/city96/ComfyUI-GGUF" "ComfyUI-GGUF" "HEAD"
 # ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ทุกการ์ดต้องมี
 Get-Node "https://github.com/jlucasmcrell/ComfyUI-H3-Multishot" "ComfyUI-H3-Multishot" "d7d1977"
+# SolAttnMiniMax -- โหนดไฟล์เดียวของ workflow Singularity ล็อกคอมมิตไว้ (ต้องมี comfy_kitchen ที่มี sol_attn)
+$solDir = Join-Path $Comfy "custom_nodes\ComfyUI-SolAttnMiniMax"
+if ($env:H3_SINGULARITY -ne "0" -and -not (Test-Path (Join-Path $solDir "__init__.py"))) {
+    New-Item -ItemType Directory -Force $solDir | Out-Null
+    try {
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/T8mars/comfyui-minimax-h3-audio-T8/8b379b42bde00a315aee146c8d4285e8caa80a5b/sol_attn_minimax_v2.py" `
+            -OutFile (Join-Path $solDir "__init__.py") -ErrorAction Stop
+    } catch {
+        Remove-Item $solDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "!! โหลด SolAttnMiniMax ไม่สำเร็จ -- workflow Singularity จะรันไม่ได้"
+    }
+}
+& $Python -c "import comfy_kitchen as c; assert c.sol_attn_is_available()" 2>$null
+if ($LASTEXITCODE -ne 0) { Write-Host "!! comfy_kitchen ไม่มี sol_attn -- อัปเดต ComfyUI ก่อนใช้ workflow Singularity" }
 
 # --- 5. แพตช์โหนด turbo ------------------------------------------------------
 # โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์

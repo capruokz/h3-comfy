@@ -1,0 +1,433 @@
+{
+  "92": {
+    "inputs": {
+      "filename_prefix": "video/EP01_v2_LC01_tall",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "130",
+        0
+      ]
+    },
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save Video"
+    }
+  },
+  "115": {
+    "inputs": {
+      "aspect_ratio": "9:16 (Portrait Widescreen)",
+      "megapixels": 0.3,
+      "multiple": 32
+    },
+    "class_type": "ResolutionSelector",
+    "_meta": {
+      "title": "Resolution Selector"
+    }
+  },
+  "119": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "120": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "121": {
+    "inputs": {
+      "samples": [
+        "505",
+        1
+      ],
+      "vae": [
+        "120",
+        0
+      ]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "VAE Decode Audio"
+    }
+  },
+  "122": {
+    "inputs": {
+      "samples": [
+        "505",
+        1
+      ],
+      "vae": [
+        "119",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "124": {
+    "inputs": {
+      "scheduler": "beta",
+      "steps": 8,
+      "denoise": 1,
+      "model": [
+        "134",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "126": {
+    "inputs": {
+      "model": [
+        "134",
+        0
+      ],
+      "conditioning": [
+        "137",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Basic Guider"
+    }
+  },
+  "127": {
+    "inputs": {
+      "unet_name": "Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "128": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "129": {
+    "inputs": {
+      "noise_seed": 392336145727410
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "130": {
+    "inputs": {
+      "fps": 24,
+      "bit_depth": 8,
+      "images": [
+        "122",
+        0
+      ],
+      "audio": [
+        "121",
+        0
+      ]
+    },
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Create Video"
+    }
+  },
+  "132": {
+    "inputs": {
+      "expression": "max(5, round(a * 24)) + (5 - (max(5, round(a * 24)) % 17)) % 17",
+      "values.a": [
+        "133",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Math Expression"
+    }
+  },
+  "133": {
+    "inputs": {
+      "value": 12
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "Float (duration)"
+    }
+  },
+  "134": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+      "strength_model": 1.0,
+      "strength_clip": 1.0,
+      "model": [
+        "217",
+        0
+      ],
+      "clip": [
+        "128",
+        0
+      ]
+    }
+  },
+  "135": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    }
+  },
+  "137": {
+    "inputs": {
+      "prompt": "subject_definitions:\n<Subject 1> is Kang Mu-yeong, a clean-shaven young Korean scholar of twenty-eight in a faded dark plum robe under a black travelling coat, wearing a wide-brimmed black horsehair gat tied under the chin over a black mesh headband; he is the shorter of the two men, in <Picture 1>.\n<Subject 2> is King Yi Hyeon, a clean-shaven young Korean man of twenty-six in a plain worn indigo-charcoal travelling robe with a muted dark red inner robe at the collar and a plain black headband over a topknot, with no gold, no embroidery and no tall royal headpiece and no wide-brimmed hat of any kind anywhere on him; he is distinctly the taller of the two men, in <Picture 2>.\n<Audio 1> is the Thai voice-timbre reference for <Subject 1> (S1): a young man's light tenor with a flat hard edge under it, every word shaped slowly and over-clearly, the pitch stepping up on the last syllable of a phrase and staying up there.\n<Audio 2> is the Thai voice-timbre reference for <Subject 2> (S2): the clear baritone of a young man of twenty-six, pitched low and held level on purpose, each phrase set down slowly with the weight landing on the last word, the volume dropping instead of rising when he is angry.\n\nsummary:\n[reference generation + audio reference] The target video runs 12 seconds in 8 shots. <Subject 1> comes up out of hard rain to an abandoned border shrine at night, told as a fast run of short cuts -- the walk, the boot, the hand on the latch, the room beyond, his face, the knife. He crosses the room, drives <Subject 2> back into a carved pillar and holds the blade to the LEFT side of his throat. Neither man says anything until the blade is already there. Identities come from the <Picture N> references; the location is generated independently and is never taken from a character-sheet background.\n\nretention_analysis:\n<Subject 1>: fully_preserved - his face, hair and wardrobe are retained exactly while fast movement and full dramatic expression are allowed; he is the only one of the two men who wears a wide-brimmed hat, and he is the shorter of the two men in every shot they share.\n<Subject 2>: fully_preserved - his face and hair are retained exactly; his clothing is the plain indigo-charcoal exile robe described in the shot text and is never a royal robe; his head is bare apart from a plain black headband and he never wears a wide-brimmed hat; he is the taller of the two men in every shot they share.\n<Audio 1>: reference - only the voice timbre of <Subject 1> follows it; the original signal is not copied and none of its words are spoken in the target video.\n<Audio 2>: reference - only the voice timbre of <Subject 2> follows it; the original signal is not copied and none of its words are spoken in the target video.\n\ndetailed_description:\nPhotorealistic Korean historical drama, vertical 9:16, large-sensor digital cinema camera, natural skin texture, crisp eyes, shallow depth of field, restrained film grain. One controlled palette only: a desaturated cold cyan-blue rain night as the base, one warm amber lantern as the single practical light in the whole location, and the men's faces as the one warm accent; no other colour competes anywhere. The same abandoned Korean border shrine throughout, and it is derelict: bare unpainted weathered timber gone grey-black with age, paper walls already torn and hanging, moss and standing water on the floor. It is emphatically not a maintained palace hall -- there is no lacquered green and red painted woodwork anywhere in this video, no gold leaf, no decorated eaves, no polished floor and no intact architecture. at night in hard rain throughout: wet ground, black timber, torn paper walls, carved pillars, a low stone altar and a low wooden table. Every frame is built in three layers -- something dark and out of focus in the near foreground, the action in the midground, and depth behind it. The eyes of whoever the shot is about sit about forty percent down from the top edge of the vertical frame. Every shot carries its own light: the amber lantern keys one side of the face, the shadow side is lifted and never crushed, both eyes hold a visible catchlight, and cold blue rain light comes from the opposite side. The location is generated here and never copied from a character sheet: no grey studio backdrop, no collage layout, no flat studio lighting. The frame is completely clean: no subtitles, no captions, no letters and no graphic overlay. No character ever looks into the lens or speaks toward the camera at any point: whenever a man talks he is looking at the other man inside the scene, and the camera is always an observer standing to one side of them, never the person being addressed.\n[Shot 1] The video opens on a high-angle wide shot from behind him, looking down past wet pine branches. Camera: Static Shot, of <Subject 1>, a clean-shaven young Korean scholar of twenty-eight in a faded dark plum robe under a black travelling coat, wearing a wide-brimmed black horsehair gat tied under the chin over a black mesh headband; he is the shorter of the two men. A heavy dark pine bough hangs down across the whole upper left corner and the left edge of the near foreground, close enough to be completely out of focus. Through the gap below it he is seen from behind and far off, small and low in the frame, walking fast up a muddy track toward the shrine. The building sits low and black ahead of him with one small amber window burning in it, and hard rain falls in visible streaks through the whole picture. Nobody speaks in this shot. Every mouth in the frame stays completely closed until the shot ends, no voice of any kind is heard over it, and no words in any language are spoken over it.\n[Shot 2] At 00:01.250, the shot cuts to a very low insert at ground level, the camera almost on the wet ground. Camera: Static Shot. One black boot comes down hard into a shallow puddle from the right of the frame and throws a full crown of water up and outward, the individual droplets frozen and lit. The soaked hem of a dark plum robe swings through the upper part of the frame above the boot. Wet ground fills the bottom two thirds and the boot is the only thing in the picture. This shot holds the object only: no face, no head and no eyes appear anywhere in the frame, and no character is identifiable in it. No voice of any kind is heard over this shot and no words in any language are spoken over it.\n[Shot 3] At 00:02.500, the shot cuts to a tight hand insert that opens out as the door swings. Camera: Static Shot. A bare wet hand comes in very large and close from the lower left and closes around a warped wooden latch set into heavy weathered timber, rainwater beaded thickly across the back of the hand and running off the knuckles. The hand presses the latch down until it gives and the torn paper door swings inward away from the lens, and past it the dark room opens up: one amber lantern on the far wall and, small and deep in the middle of the picture, the seated back-lit shape of a man behind a low table who does not get up. He is too far away and too dim for his face to be read. No face is legible anywhere in this shot. This shot holds the object only: no face, no head and no eyes appear anywhere in the frame, and no character is identifiable in it. No voice of any kind is heard over this shot and no words in any language are spoken over it.\n[Shot 4] At 00:03.750, the shot cuts to a wet three-quarter close-up shot of him in profile. Camera: Static Shot, of <Subject 1>, a clean-shaven young Korean scholar of twenty-eight in a faded dark plum robe under a black travelling coat, wearing a wide-brimmed black horsehair gat tied under the chin over a black mesh headband; he is the shorter of the two men. His face fills the left half of the frame turned in profile toward the right of the picture, looking across the room at the seated man and never toward the lens. Rain runs off the wide brim of his gat in a curtain of visible drops in front of him. His jaw tightens once and one breath moves through him. The amber lantern glows out of focus in the dark on the right of the frame. Nobody speaks in this shot. Every mouth in the frame stays completely closed until the shot ends, no voice of any kind is heard over it, and no words in any language are spoken over it.\n[Shot 5] At 00:05.000, the shot cuts to a fast lateral medium tracking shot travelling with them at chest height. Camera: Tracking Shot, of <Subject 1>, a clean-shaven young Korean scholar of twenty-eight in a faded dark plum robe under a black travelling coat, wearing a wide-brimmed black horsehair gat tied under the chin over a black mesh headband; he is the shorter of the two men. One continuous action and nothing else. He crosses the wet floor in two long driving steps from the left of the frame, takes the taller man by the front of the robe with both hands and slams him backward into a carved timber pillar on the right. The taller man's back hits the pillar hard and his head snaps back against the timber; the impact reads as a separate moment from the rush that caused it. Both soaked robes are still swinging afterwards and the room behind streaks with directional motion blur. Nobody speaks in this shot. Every mouth in the frame stays completely closed until the shot ends, no voice of any kind is heard over it, and no words in any language are spoken over it.\n[Shot 6] At 00:06.750, the shot cuts to a tight over-the-shoulder close-up shot past the taller man onto his face. Camera: Static Shot, of <Subject 1>, a clean-shaven young Korean scholar of twenty-eight in a faded dark plum robe under a black travelling coat, wearing a wide-brimmed black horsehair gat tied under the chin over a black mesh headband; he is the shorter of the two men. The stack reverses, the foreground changes hands, and again only ONE face is visible in this shot. In the lower near foreground, black and completely out of focus, sits the shoulder and the underside of the jaw of the TALLER bare-headed man in the indigo-charcoal robe: his face is turned away and out of frame and his mouth cannot be seen at any point. Above and beyond that shoulder, sharp and in focus and filling the upper two thirds of the vertical frame, is the face of the SHORTER man in the wide-brimmed gat -- the man named at the head of this shot -- lit warm on one side by the amber lantern. His is the only face in the picture. The blade in his fist crosses the very bottom of the frame. His teeth are set and his eyes are wide and wet, and he is looking straight at the other man's face a hand away from his own and never at the lens. The blade is pressed to the LEFT side of the taller man's throat. <Subject 1> is the only person speaking in this shot and his lips are the only lips that move; <Subject 2> is not speaking and his mouth stays completely closed. <Subject 1> (S1) says, in a young man's light tenor forced down low through a clenched jaw, the breath tearing between the words and the voice cracking upward on the last word: <d>[Thai] ทั้งบ้านข้าตายเพราะชื่อเจ้า</d> He closes his mouth on the last word and the shot holds on him in silence for a beat afterwards.\n[Shot 7] At 00:08.750, the shot cuts to a reverse tight over-the-shoulder close-up shot past the shorter man onto his face. Camera: Static Shot, of <Subject 2>, a clean-shaven young Korean man of twenty-six in a plain worn indigo-charcoal travelling robe with a muted dark red inner robe at the collar and a plain black headband over a topknot, with no gold, no embroidery and no tall royal headpiece and no wide-brimmed hat of any kind anywhere on him; he is distinctly the taller of the two men. The two men are stacked in depth, not side by side, and only ONE face is visible in this shot. In the lower near foreground, black and completely out of focus, sits the back of the shoulder and the hat brim of the SHORTER man in the wide-brimmed gat: he is turned away, his face is not visible at all in this shot and his mouth cannot be seen. Above and beyond that shoulder, sharp and in focus and filling the upper two thirds of the vertical frame, is the face of the TALLER bare-headed man in the indigo-charcoal robe -- the man named at the head of this shot -- tipped back against the carved pillar, keyed by the amber lantern with cold blue rain light on the far side of it. His is the only face in the picture. The short blade lies across the very bottom of the frame against the LEFT side of his throat with a thin dark line of blood standing along the edge. He does not pull away from the blade and he does not blink; his eyes stay on the man holding him and never move toward the lens. <Subject 2> is the only person speaking in this shot and his lips are the only lips that move; <Subject 1> is not speaking and his mouth stays completely closed. <Subject 2> (S2) says, in the clear baritone of a young man of twenty-six, level, unhurried and completely without fear, each word set down separately as if he had decided on them a long time ago: <d>[Thai] ถ้าข้าฆ่าครอบครัวเจ้า ก็ลงมือ</d> He closes his mouth on the last word and the shot holds on him in silence for a beat afterwards.\n[Shot 8] At 00:10.750, the shot cuts to an extreme close-up of his eyes only, the frame cut off above the mouth. Camera: Static Shot, of <Subject 1>, a clean-shaven young Korean scholar of twenty-eight in a faded dark plum robe under a black travelling coat, wearing a wide-brimmed black horsehair gat tied under the chin over a black mesh headband; he is the shorter of the two men. Only the upper half of his face is in the frame, wet under the brim of his gat, his eyes directed to the right of the picture at the man he is holding and not at the lens. He expected the other man to beg and he did not, and it lands: his eyes hold still for a moment and then narrow, and the wet knuckles at the very bottom edge of the frame tighten on the knife handle. He does not strike and nothing else moves. Nobody speaks in this shot. Every mouth in the frame stays completely closed until the shot ends, no voice of any kind is heard over it, and no words in any language are spoken over it.\n\noverall_soundscape:\nOne continuous ambience runs unbroken from the first frame to the last: hard rain on a tiled roof and on wet ground, wide and open outside and closer and drier the moment the door gives. The cuts are fast and each one brings its own sound cleanly on the frame it lands on: a boot into a puddle, a warped latch giving, a door swinging on wet timber, a short knife clearing its sheath, two fast footfalls, and one blunt body impact against a pillar. The pillar hit is built in three separate stages in this order and never as one lump of noise -- the rush of cloth and air, then one blunt low impact exactly on the frame where the back meets the timber, then breath knocked out and water coming off both robes. Both Thai lines sit clearly above everything else. After the last Thai word the rain and his breathing continue on their own to the end of the video; the sound is never cut off with the mouth. Only the two Thai lines written above are spoken. No other speech and no other language of any kind is heard anywhere in this video -- no Korean, no Chinese, no English -- and there is no narration.\n\nnon_diegetic_music:\nOne direction only: no music at all through the approach, then a single low bowed string enters on the pillar impact and holds one unresolved note beneath the two Thai lines without ever swelling. It never returns after that and there is no percussion and no stinger anywhere.\n",
+      "width": [
+        "115",
+        0
+      ],
+      "height": [
+        "115",
+        1
+      ],
+      "length": [
+        "132",
+        1
+      ],
+      "ref_image_size": "max",
+      "clip": [
+        "134",
+        1
+      ],
+      "vae": [
+        "119",
+        0
+      ],
+      "audio_vae": [
+        "120",
+        0
+      ],
+      "ref_images.ref_image_0": [
+        "200",
+        0
+      ],
+      "ref_images.ref_image_1": [
+        "201",
+        0
+      ],
+      "ref_audios.ref_audio_0": [
+        "215",
+        0
+      ],
+      "ref_audios.ref_audio_1": [
+        "216",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "_meta": {
+      "title": "MiniMax H3 Reference to Video"
+    }
+  },
+  "200": {
+    "inputs": {
+      "image": "kang_mu_yeong_ref.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "<Picture 1>"
+    }
+  },
+  "201": {
+    "inputs": {
+      "image": "king_yi_hyeon_ref.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "<Picture 2>"
+    }
+  },
+  "210": {
+    "inputs": {
+      "audio": "voice_scholar_short.wav"
+    },
+    "class_type": "LoadAudio",
+    "_meta": {
+      "title": "<Audio 1>"
+    }
+  },
+  "211": {
+    "inputs": {
+      "audio": "voice_king_short.wav"
+    },
+    "class_type": "LoadAudio",
+    "_meta": {
+      "title": "<Audio 2>"
+    }
+  },
+  "213": {
+    "inputs": {
+      "model": [
+        "127",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3MemoryEfficientSageAttentionPatch",
+    "_meta": {
+      "title": "MiniMax H3 Mem Eff Sage Attention Patch"
+    }
+  },
+  "214": {
+    "class_type": "ModelAttentionBackend",
+    "inputs": {
+      "attention": "pytorch attention",
+      "model": [
+        "213",
+        0
+      ]
+    }
+  },
+  "215": {
+    "inputs": {
+      "max_seconds": 0.6,
+      "audio": [
+        "210",
+        0
+      ]
+    },
+    "class_type": "H3ReferenceAudio",
+    "_meta": {
+      "title": "H3 Reference Audio (<Audio 1>)"
+    }
+  },
+  "216": {
+    "inputs": {
+      "max_seconds": 0.6,
+      "audio": [
+        "211",
+        0
+      ]
+    },
+    "class_type": "H3ReferenceAudio",
+    "_meta": {
+      "title": "H3 Reference Audio (<Audio 2>)"
+    }
+  },
+  "217": {
+    "class_type": "SolAttnMiniMax",
+    "inputs": {
+      "tau": 1.3,
+      "start_percent": 0.2,
+      "end_percent": 0.9,
+      "min_tokens": 12288,
+      "sink_conditioning": "exact_kv_and_rows",
+      "morton": false,
+      "morton_curve": "2d_frame",
+      "centroid_tail": true,
+      "routed_cap_percent": 0,
+      "reuse_qkv_memory": false,
+      "verbose": false,
+      "dense_blocks": "",
+      "model": [
+        "214",
+        0
+      ]
+    }
+  },
+  "501": {
+    "class_type": "SplitSigmas",
+    "inputs": {
+      "step": 7,
+      "sigmas": [
+        "124",
+        0
+      ]
+    }
+  },
+  "503": {
+    "class_type": "MinimaxH3LatentUpscaler3D",
+    "inputs": {
+      "latent": [
+        "511",
+        0
+      ],
+      "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
+      "mode": "megapixels",
+      "mode.megapixels": 0.8,
+      "align": 32,
+      "enable_temporal_chunking": true,
+      "force_unload": true,
+      "device": "cuda",
+      "precision": "bf16"
+    }
+  },
+  "504": {
+    "class_type": "LTXVConcatAVLatent",
+    "inputs": {
+      "video_latent": [
+        "503",
+        0
+      ],
+      "audio_latent": [
+        "512",
+        0
+      ]
+    }
+  },
+  "505": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "129",
+        0
+      ],
+      "guider": [
+        "126",
+        0
+      ],
+      "sampler": [
+        "135",
+        0
+      ],
+      "sigmas": [
+        "501",
+        1
+      ],
+      "latent_image": [
+        "504",
+        0
+      ]
+    }
+  },
+  "511": {
+    "class_type": "LoadLatent",
+    "inputs": {
+      "latent": "clip_v.latent"
+    }
+  },
+  "512": {
+    "class_type": "LoadLatent",
+    "inputs": {
+      "latent": "clip_a.latent"
+    }
+  }
+}
