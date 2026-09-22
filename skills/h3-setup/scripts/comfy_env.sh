@@ -6,7 +6,7 @@
 #
 #   * two installs on disk -- /opt/workspace-internal/ComfyUI and
 #     /workspace/ComfyUI -- and the one that exists first is not the live one,
-#     so picking by [ -d ] installs 38 GB into a directory nothing reads;
+#     so picking by [ -d ] installs 45 GB into a directory nothing reads;
 #   * the app listens on 18188, while 8188 is an auth proxy in front of it, so
 #     launching "on 8188" dies instantly with a port clash and exit 1;
 #   * a supervisor respawns it within seconds of any pkill, so a manual restart

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ตรวจว่าเครื่องที่เช่ามาพร้อมใช้งานจริงมั้ย ก่อนจ่ายค่าโหลดไฟล์ 38 GB
+"""ตรวจว่าเครื่องที่เช่ามาพร้อมใช้งานจริงมั้ย ก่อนจ่ายค่าโหลดไฟล์ 45 GB
 
     python3 check_stack.py
 
@@ -133,7 +133,7 @@ if not too_old:
             continue
     else:
         row("triton", "ยังไม่ได้ติดตั้ง", "WARN",
-            "pip install triton — ถ้าไม่ลง ให้ลบโหนด SolAttnPatch (214) ออกจาก workflow")
+            "pip install triton — โหนด SolAttnMiniMax (217) ต้องใช้")
 
 w = max(len(r[1]) for r in rows)
 mark = {"PASS": "ผ่าน", "WARN": "ควรรู้", "FAIL": "ต้องแก้"}
@@ -152,7 +152,7 @@ if too_old:
     print()
     print("  ทำยังไงต่อ:")
     print("    1. กลับไปหน้า Instances บน vast.ai แล้วกด Destroy เครื่องนี้")
-    print("       (ยังไม่ได้โหลดไฟล์ 38 GB จึงยังไม่เสียค่าเน็ตก้อนใหญ่)")
+    print("       (ยังไม่ได้โหลดไฟล์ 45 GB จึงยังไม่เสียค่าเน็ตก้อนใหญ่)")
     print("    2. ที่หน้า Search พิมพ์ค้นว่า  5090  หรือ  5080  หรือ  5060")
     print("    3. เช่าใหม่แล้วเริ่มจากคู่มือ 3 ขั้นที่ 1 อีกครั้ง")
     print()

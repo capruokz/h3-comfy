@@ -1,6 +1,6 @@
 ---
 name: h3-setup
-description: ติดตั้ง ComfyUI และ MiniMax H3 ลงเครื่องเปล่าตั้งแต่ต้นจนรันได้ ทั้งเครื่องตัวเองและเครื่องเช่า vast.ai (รองรับเฉพาะการ์ด NVIDIA RTX 50 ซีรีส์ / Blackwell ขึ้นไป) — ถามผู้ใช้ก่อนว่าจะลงที่ไหน, ตรวจสเปคเครื่องด้วย precheck.py ที่รันบนเครื่องเปล่าได้, ลง ComfyUI, โหลดโมเดล 5 ไฟล์ 38 GB, ล็อกเวอร์ชัน custom node, แพตช์บั๊กที่ทำให้ต่อ ref เสียงไม่ได้ และเปิดเซิร์ฟเวอร์ให้พร้อมใช้. Use when the user wants to install ComfyUI or MiniMax H3 from scratch, asks whether their machine can run it, wants to rent a GPU on vast.ai for video generation, when H3 renders far slower than expected, or when a clip suddenly costs 2-3x per frame with no error.
+description: ติดตั้ง ComfyUI และ MiniMax H3 ลงเครื่องเปล่าตั้งแต่ต้นจนรันได้ ทั้งเครื่องตัวเองและเครื่องเช่า vast.ai (รองรับเฉพาะการ์ด NVIDIA RTX 50 ซีรีส์ / Blackwell ขึ้นไป) — ถามผู้ใช้ก่อนว่าจะลงที่ไหน, ตรวจสเปคเครื่องด้วย precheck.py ที่รันบนเครื่องเปล่าได้, ลง ComfyUI, โหลดโมเดล 5 ไฟล์ 45 GB, ล็อกเวอร์ชัน custom node, แพตช์บั๊กที่ทำให้ต่อ ref เสียงไม่ได้ และเปิดเซิร์ฟเวอร์ให้พร้อมใช้. Use when the user wants to install ComfyUI or MiniMax H3 from scratch, asks whether their machine can run it, wants to rent a GPU on vast.ai for video generation, when H3 renders far slower than expected, or when a clip suddenly costs 2-3x per frame with no error.
 ---
 
 # ติดตั้ง H3
@@ -20,7 +20,7 @@ description: ติดตั้ง ComfyUI และ MiniMax H3 ลงเคร�
 
 ## ถามผู้ใช้ก่อนเสมอ — ห้ามเริ่มติดตั้งเอง
 
-การติดตั้งชุดนี้โหลดไฟล์ **38 GB** และเปลี่ยนแปลงเครื่อง **ถามให้ครบก่อนแตะอะไร**
+การติดตั้งชุดนี้โหลดไฟล์ **45 GB** และเปลี่ยนแปลงเครื่อง **ถามให้ครบก่อนแตะอะไร**
 
 **คำถามที่ 1 — ลงที่ไหน**
 
@@ -47,7 +47,7 @@ python3 precheck.py --target <ที่ที่จะติดตั้ง>
 บอกให้ครบสี่ข้อแล้วรอเขาตอบ:
 
 1. จะลงไว้ที่โฟลเดอร์ไหน
-2. กินพื้นที่รวมเท่าไหร่ — ComfyUI ~5 GB + โมเดล 38 GB
+2. กินพื้นที่รวมเท่าไหร่ — ComfyUI ~5 GB + โมเดล 45 GB
 3. ใช้เวลาประมาณเท่าไหร่
 4. ถ้าจะลบทีหลังทำยังไง (ลบโฟลเดอร์นั้นทิ้ง)
 
@@ -59,7 +59,6 @@ python3 precheck.py --target <ที่ที่จะติดตั้ง>
 python3 precheck.py                # เครื่องนี้ไหวมั้ย -- รันบนเครื่องเปล่าได้
 bash install_comfy.sh              # ข้ามถ้ามี ComfyUI อยู่แล้ว (Linux เท่านั้น)
 export HF_TOKEN=hf_xxxx
-export CIVITAI_TOKEN=xxxx          # ไม่บังคับ -- ถ้าจะเอา LoRA เนื้อภาพด้วย
 bash setup.sh                      # ตรวจ → โหลด → node → แพตช์ → restart → จด machine.json
 ```
 
@@ -72,7 +71,6 @@ bash setup.sh                      # ตรวจ → โหลด → node → 
 python precheck.py
 powershell -ExecutionPolicy Bypass -File install_comfy.ps1   # โหลด portable + แตก + เปิด
 $env:HF_TOKEN = "hf_xxxx"
-$env:CIVITAI_TOKEN = "xxxx"        # ไม่บังคับ -- ถ้าจะเอา LoRA เนื้อภาพด้วย
 powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 
@@ -81,47 +79,24 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 **ตรวจสแต็กมาก่อนโหลดโดยตั้งใจ** เครื่องที่ตั้งค่าผิดยังเจนคลิปออกมาได้ปกติ ไม่มี error
 แค่ช้ากว่าที่ควรหลายเท่า — ที่บ้านเคยเสียไปครึ่งวันเพราะ SageAttention ยังเป็น 1.0.6
 (ไม่มี path ของ Blackwell) บวก torch ที่ build กับ CUDA 12.8 รวมกันช้ากว่าที่ควร **5.2 เท่า**
-ถ้าปล่อยให้โหลด 38 GB จบก่อนค่อยรู้ ก็จ่ายค่าเช่าไปแล้ว
+ถ้าปล่อยให้โหลด 45 GB จบก่อนค่อยรู้ ก็จ่ายค่าเช่าไปแล้ว
 
-## โมเดลหลัก: fl2va INT4Q คู่กับ turbo_v4 LoRA
+## โมเดลที่ใช้: Singularity ref2va int8 คู่กับ ref2v_turbo_4step LoRA
 
-workflow ชุดนี้ใช้ `minimax_h3_fl2va_pruned_INT4Q.safetensors` (18.5 GB จาก
-`tsolful/Minimax_H3_INT4MixedConvRot`) คู่กับ `minimax_h3_turbo_v4_step600_ema` — ตัวเดียวกับ
-เครื่องที่ใช้เจนงานจริง ใช้ VRAM ราว 8 GB การ์ด 16 GB กับ 32 GB ใช้ไฟล์เดียวกัน
+workflow ชุดนี้ (`workflow/h3_singularity_rent*_api.json`) ใช้ไฟล์ 6 ไฟล์ รวม 45 GB
 
-**ตระกูลโมเดล (fl2va / ref2va) ต้องดูคู่กับ LoRA ไม่ใช่กฎเดี่ยว** เคยวัดสองรอบได้คำตอบกลับกัน
-
-| วันที่ | โมเดล | LoRA | ความคม | เวลา |
-|---|---|---|---|---|
-| 29 ส.ค. 69 | fl2va INT4 | (กราฟอีกชุด) | 22.5 | 173 วิ |
-| 29 ส.ค. 69 | ref2va fp8 | (กราฟอีกชุด) | 44.3 | 118 วิ |
-| **11 ก.ย. 69** | **fl2va INT4Q** | **turbo_v4 @ 1.0** | **317.6** | 241 วิ |
-| 11 ก.ย. 69 | ref2va INT4Q | ref2v_turbo_4step @ 0.8 | 221.3 | 215 วิ |
-
-(ตัวเลขความคมสองวันวัดคนละช็อต เทียบข้ามวันไม่ได้ เทียบได้เฉพาะในวันเดียวกัน)
-
-**ใช้ผิดคู่จะไม่ error** อาการคือภาพนุ่ม หน้าบิดบางจังหวะ ท่าไม่ตรงคำสั่ง ถ้าจะเปลี่ยนไฟล์โมเดลหรือ LoRA
-ให้เจนช็อตเดียวกัน seed เดียวกันเทียบก่อนทุกครั้ง
-
-## LoRA เนื้อภาพ กับ CIVITAI_TOKEN
-
-`setup.sh` โหลด **"Minimax H3 Authentic cinematic texture"** ให้ด้วย ถ้าตั้ง
-`CIVITAI_TOKEN` ไว้ ถ้าไม่ตั้งมันจะข้ามแล้วบอกวิธี ไม่ล้มทั้งสคริปต์
-
-**มันแก้สองอย่างที่พรอมป์ตสั่งแล้วไม่เป็นผล** วัดบนคลิปเดียวกัน seed เดียวกัน
-
-| | ไม่มี LoRA | ที่ strength 0.7 |
+| ไฟล์ | ขนาด | ต้นทาง |
 |---|---|---|
-| จุดดำ L* p1 | **1.5 จมสนิท** | **4.1 มีรายละเอียด** |
-| ความอิ่มสี | 141 | 98 |
+| `Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors` | 21.0 GB | `WarmBloodAban/Minimax-h3_Singularity` |
+| `qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors` | 15.7 GB | `Comfy-Org/MiniMax-H3` |
+| `minimax_h3_video_vae_fp16.safetensors` | 5.2 GB | `Comfy-Org/MiniMax-H3` |
+| `minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` | 2.0 GB | `Comfy-Org/MiniMax-H3` |
+| `minimax_h3_latent_upscaler_3d_bf16.safetensors` | 0.7 GB | `LBH-123-AI/Minimax_h3_latent_Upscaler` (ล็อก revision) |
+| `minimax_h3_audio_vae_fp32.safetensors` | 0.6 GB | `Comfy-Org/MiniMax-H3` |
 
-พรอมป์ตที่เขียนสั่งไว้ตรงๆ ว่า "เงาห้ามต่ำกว่า L* 18" กับ "อิ่มสี 52/255" ได้ผลจริง
-เป็น 1.5 กับ 141 คือ **แทบไม่ฟังเลย** ส่วน LoRA แก้ให้ได้ทันที
-
-**ดันเกิน 0.7 ไม่ได้อะไรเพิ่ม** ที่ 1.0 ดำนิ่งอยู่ที่ 4.0 เท่าเดิม แต่ส่วนสว่างร่วงจาก
-73 เหลือ 67 และคอนทราสต์เหลือ 16.6 ภาพจะทึบและแบน
-
-โทเคนเอาจาก https://civitai.com/user/account (CivitAI บังคับโทเคนแม้โมเดลจะเปิดสาธารณะ)
+**ตระกูลโมเดล (fl2va / ref2va) ต้องดูคู่กับ LoRA ไม่ใช่กฎเดี่ยว** ใช้ผิดคู่จะไม่ error
+อาการคือภาพนุ่ม หน้าบิดบางจังหวะ ท่าไม่ตรงคำสั่ง ถ้าจะเปลี่ยนไฟล์โมเดลหรือ LoRA
+ให้เจนช็อตเดียวกัน seed เดียวกันเทียบก่อนทุกครั้ง
 
 ## สิ่งที่แต่ละสคริปต์แก้
 
@@ -132,10 +107,9 @@ workflow ชุดนี้ใช้ `minimax_h3_fl2va_pruned_INT4Q.safetensors`
 | `install_comfy.ps1` | ฝั่ง **Windows** — ถามหน้า release ว่ารุ่นล่าสุดชื่ออะไร โหลด portable 2 GB แตกด้วย `tar` ที่ติดมากับ Windows (ไม่ต้องลง 7-Zip) |
 | `setup.ps1` | ฝั่ง **Windows** ของ `setup.sh` — **ต้องใช้ Python API โหลดโมเดล ไม่ใช่คำสั่ง `hf`** เพราะ embedded python ของ portable ไม่มีโมดูล `venv` แล้ว CLI ของ huggingface_hub ตายตั้งแต่ import |
 | `check_stack.py` | ยืนยันว่าเป็น cu130 + SageAttention ≥2.2 ก่อนจ่ายค่าโหลด |
-| `comfy_env.sh` | **หา ComfyUI ตัวที่รันอยู่จริง** เทมเพลต vast มีสองชุดบนดิสก์ ตัวที่ `[ -d ]` เจอก่อนไม่ใช่ตัวที่ให้บริการ เคยทำให้ 38 GB ลงผิดที่ |
-| `setup.sh` | โหลดโมเดล + clone node ที่ล็อกคอมมิต + แพตช์ + restart |
+| `comfy_env.sh` | **หา ComfyUI ตัวที่รันอยู่จริง** เทมเพลต vast มีสองชุดบนดิสก์ ตัวที่ `[ -d ]` เจอก่อนไม่ใช่ตัวที่ให้บริการ เคยทำให้ 45 GB ลงผิดที่ |
+| `setup.sh` | ย้าย ComfyUI ไปรุ่นที่มี `MiniMaxH3AddGuide` ถ้าเก่ากว่า + โหลดโมเดล + clone node ที่ล็อกคอมมิต + restart |
 | `find_ceiling.py` | **ของเสริม ไม่อยู่ในลำดับติดตั้ง** วัดเพดานเฟรมของการ์ดใบนี้ กิน 10-20 นาทีของเวลาที่จ่ายค่าเช่าอยู่ |
-| `h3turbo_patched__init__.py` | โหนด turbo ต้นฉบับตายทันทีที่ต่อ `<Audio N>` เดี่ยว — `_unique_t` สร้างแถว timestep น้อยกว่า core หนึ่งแถว คลิปที่มีบทพูดจึงรันไม่ได้เลย |
 
 ## กับดักของเครื่องเช่าที่ต้องรู้
 

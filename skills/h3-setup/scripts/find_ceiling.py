@@ -30,7 +30,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-WF = REPO / "workflow" / "h3_ref2video_api.json"
+WF = REPO / "workflow" / "h3_singularity_rent_api.json"
 OUT = REPO / "machine.json"
 
 PROMPT = ("detailed_description:\n"
@@ -93,9 +93,7 @@ def render(base, dur, mp, seed):
     for k in [k for k in node if k.startswith(("ref_images.", "ref_videos.",
                                                "ref_audios.", "ref_video_audios."))]:
         del node[k]
-    wf["134"]["inputs"]["lora_name"] = "minimax_h3_turbo_v4_step600_ema.safetensors"
     wf["115"]["inputs"]["megapixels"] = mp
-    wf["124"]["inputs"]["steps"] = 4
     wf["133"]["inputs"]["value"] = dur
     wf["129"]["inputs"]["noise_seed"] = seed
     wf["92"]["inputs"]["filename_prefix"] = f"ceiling/d{dur}"

@@ -17,102 +17,65 @@ import sys; sys.path.insert(0, "<repo>/skills/h3-run/scripts")
 import comfy_run as cr
 from pathlib import Path
 
-WF = Path("<repo>/workflow/h3_ref2video_api.json")
+WF = Path("<repo>/workflow")
 OUT = Path("./clips"); OUT.mkdir(exist_ok=True)
 clips, prev = [], None
 
 for i, text in enumerate(PROMPTS):            # สร้าง+ตรวจ prompt ให้ครบก่อนยิงคลิปแรก
-    wf = cr.load(WF)                          # โหลดใหม่ทุกคลิป ไม่แก้ทับตัวเดิม
+    # คลิปแรกใช้กราฟธรรมดา คลิปที่ต่อจากคลิปก่อนใช้กราฟ chain (เฟรมแรก = เฟรมท้ายคลิปก่อน)
+    wf = cr.load(WF / ("h3_singularity_rent_chain_api.json" if prev else "h3_singularity_rent_api.json"))
     cr.set_input(wf, "137", "prompt", text)
     cr.set_input(wf, "129", "noise_seed", SEEDS[i])
     cr.set_input(wf, "133", "value", 10)                     # ความยาว (วินาที)
-    cr.set_input(wf, "115", "megapixels", 0.6)
     cr.set_input(wf, "92", "filename_prefix", f"video/c{i+1}")   # ต้องไม่ซ้ำ
-    cr.drop_inputs(wf, "137", "ref_images.")                 # ล้างช่องเก่าก่อนต่อใหม่
     if prev:
-        cr.add_load_image(wf, prev, "202", wire_to="137", wire_key="ref_images.ref_image_2")
+        cr.set_input(wf, "600", "image", prev)
     v = cr.run(wf, out=OUT / f"c{i+1}.mp4", tag=f"c{i+1}")
     clips.append(v)
     prev = cr.last_frame(v)                   # แคป + วางใน input/ คืนชื่อไฟล์
 cr.concat(clips, "FULL.mp4")
 ```
 
-## แผนที่โหนดในกราฟชุดนี้
+## workflow ที่ใช้
 
-ทุกคนใช้ `workflow/h3_ref2video_api.json` ตัวเดียวกัน หมายเลขจึงตรงกันเสมอ
+สูตร Singularity สองรอบ: เจนฐาน **0.4 MP** beta **10 step แบ่ง 8+2** → ขยาย latent เป็น **1.0 MP** → อีก 2 step
+บน RTX 5090 เช่า คลิป 9 วิ ราว 94 วิ ได้ 1376x768 (วัด 19 ก.ย. 2569)
+
+| ไฟล์ | ใช้เมื่อ |
+|---|---|
+| `workflow/h3_singularity_rent_api.json` | คลิปแรกของฉาก หรือคลิปที่ตัดใหม่ไม่ต่อภาพ |
+| `workflow/h3_singularity_rent_chain_api.json` | คลิปที่ต้องเริ่มจากเฟรมสุดท้ายของคลิปก่อน — ต้องใช้ ComfyUI ที่มี `MiniMaxH3AddGuide` |
+
+## แผนที่โหนด
+
+สองไฟล์ใช้หมายเลขโหนดชุดเดียวกัน
 
 | โหนด | คือ | แก้ด้วย |
 |---|---|---|
 | `137` | `MiniMaxH3ReferenceToVideo` | `prompt`, `ref_images.*`, `ref_audios.*` |
 | `129` | `RandomNoise` | `noise_seed` — **ชื่อคีย์ไม่ใช่ `seed`** |
 | `133` | `PrimitiveFloat` | `value` = ความยาวคลิปเป็นวินาที |
-| `115` | `ResolutionSelector` | `megapixels`, `aspect_ratio` |
-| `124` | `BasicScheduler` | `steps` (turbo LoRA ใช้ 4) |
-| `134` | `MiniMaxH3TurboLoRA` | `lora_name` |
+| `115` | `ResolutionSelector` | `megapixels` ของรอบแรก, `aspect_ratio` |
+| `124` | `BasicScheduler` | beta `steps` รวมทั้งสองรอบ |
+| `501` | `SplitSigmas` | `step` = จำนวน step ของรอบแรก ที่เหลือคือรอบหลังขยาย |
+| `503` | `MinimaxH3LatentUpscaler3D` | `mode.megapixels` = ขนาดหลังขยาย |
+| `127` | `UNETLoader` | `Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8` |
+| `134` | `LoraLoader` | `minimax_h3_ref2v_turbo_4step_v0.1` ที่ 1.0 |
+| `217` | `SolAttnMiniMax` | ตามค่าของผู้ทำ Singularity (tau 1.3) |
 | `92` | `SaveVideo` | `filename_prefix` |
 | `200` `201` | `LoadImage` | รูปตัวละคร |
 | `210` `211` | `LoadAudio` | ไฟล์เสียงอ้างอิง |
 | `215` `216` | `H3ReferenceAudio` | `max_seconds` = 0.6 ตัดเสียงอ้างอิงให้สั้นก่อนเข้า `137` |
-| `127` | `UNETLoader` | `unet_name` = `minimax_h3_fl2va_pruned_INT4Q` คู่กับ turbo_v4 LoRA ห้ามเปลี่ยนโดยไม่วัดเทียบ |
+| `600` | `LoadImage` | chain เท่านั้น: เฟรมสุดท้ายของคลิปก่อน |
+| `601` `602` | `MiniMaxH3AddGuide` | chain เท่านั้น: ยึดรูป `600` ที่เฟรม 0 ของรอบแรก และของ latent หลังขยาย |
+| `603` | `BasicGuider` | chain เท่านั้น: guider ของรอบสอง |
 
-## สูตร Singularity สองรอบ (ภาพคมกว่า เสียงชัดกว่า)
-
-มีสาม workflow ใช้ node id ชุดเดียวกับข้างบน (`137` `129` `133` `115` `92` `200`-`216`) แก้ค่าได้เหมือนเดิม
-
-| ไฟล์ | ทำอะไร | 5060 Ti คลิป 9 วิ |
-|---|---|---|
-| `workflow/h3_singularity_api.json` | เจนรวดเดียว: 0.3 MP 7 step → ขยาย latent เป็น 0.8 MP → อีก 1 step | 285 วิ |
-| `workflow/h3_singularity_draft_api.json` | **ดราฟ** = รอบแรกอย่างเดียว ไม่ขยาย + เซฟ latent | 156 วิ |
-| `workflow/h3_singularity_final_api.json` | **เจนจริง** จาก latent ของดราฟ: ขยาย + 1 step | 141 วิ |
-
-**สูตรการ์ดเช่า (5090):** ไฟล์ชุด `h3_singularity_rent_*.json` โครงเดียวกันทุกโหนด ต่างแค่ค่า
-0.4 MP → ขยายเป็น **1.0 MP**, beta **10 step แบ่ง 8+2** — บน RTX 5090 คลิป 9 วิ 94 วิ ได้ 1376x768
-ความคม 163.8 (สูตรบนคือ 68 วิ, 98.3) วัด 19 ก.ย. 2569 ดราฟกับ final ต้องใช้ชุดเดียวกัน
-ห้ามเอาดราฟของสูตร 5060 Ti ไปต่อกับ final ของสูตรเช่า (sigma คนละชุด)
-
-| ไฟล์ | ทำอะไร |
-|---|---|
-| `workflow/h3_singularity_rent_api.json` | เจนรวดเดียว 0.4 → 1.0 MP 8+2 |
-| `workflow/h3_singularity_rent_draft_api.json` | ดราฟ: รอบแรก 8 step ที่ 0.4 MP + เซฟ latent |
-| `workflow/h3_singularity_rent_final_api.json` | เจนจริงจาก latent: ขยายเป็น 1.0 MP + 2 step |
-
-ดราฟ + เจนจริง ได้คลิป**เหมือนเจนรวดเดียวทุกพิกเซล** (PSNR inf, seed เดียวกัน) ดราฟที่ผ่านจึงไม่มีทางออกมาเป็นอีกแบบตอนเจนจริง
-ช็อตที่ไม่ผ่านเสียแค่ค่าดราฟ
-
-```python
-WF = Path("<repo>/workflow")
-d = cr.load(WF / "h3_singularity_draft_api.json")
-# ... set_input prompt / seed / refs เหมือนเดิม ...
-cr.set_input(d, "509", "filename_prefix", "h3_latent/shot01_v")   # ต้องไม่ซ้ำต่อคลิป
-cr.set_input(d, "510", "filename_prefix", "h3_latent/shot01_a")
-cr.run(d, out=OUT / "shot01_draft.mp4")
-# ผู้ใช้ตรวจดราฟผ่านแล้ว:
-v, a = cr.stash_latents("shot01", prefix="h3_latent/shot01")
-f = cr.load(WF / "h3_singularity_final_api.json")
-# ... set_input prompt / seed / refs ชุดเดียวกับดราฟ (conditioning ต้องตรง) ...
-cr.set_input(f, "511", "latent", v)
-cr.set_input(f, "512", "latent", a)
-cr.run(f, out=OUT / "shot01.mp4")
-```
-
-| โหนดเพิ่ม | คือ | หมายเหตุ |
-|---|---|---|
-| `127` | `UNETLoader` | `Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8` |
-| `217` | `SolAttnMiniMax` | ตามค่าของผู้ทำ Singularity (tau 1.3) |
-| `134` | `LoraLoader` | `minimax_h3_ref2v_turbo_4step_v0.1` ที่ 1.0 (ไม่ใช่ `MiniMaxH3TurboLoRA` แบบกราฟหลัก) |
-| `124` | `BasicScheduler` | beta 8 step |
-| `501` | `SplitSigmas` | `step` 7 = รอบแรก 7 รอบขยาย 1 |
-| `503` | `MinimaxH3LatentUpscaler3D` | `mode.megapixels` 0.8 |
-| `509` `510` | `SaveLatent` | ดราฟเท่านั้น: ภาพ / เสียง แยกไฟล์ |
-| `511` `512` | `LoadLatent` | final เท่านั้น: อ่านจาก `input/` |
-
-- **อย่าลดรอบแรกต่ำกว่า 7 step** วัดแล้วเสียงพูดตัวละครแย่ลงชัด (4 step ทั้งแบบ 3+1 และ 2+2) ส่วนภาพคมเพราะการขยาย ไม่ได้มาจาก step
-- **ดราฟแบบหยุดกลางทาง (เช่น step 4 แล้วเดินต่อ) ใช้ไม่ได้** ภาพที่คาดไว้ตอนนั้นเบลอจนดูตำแหน่งฉากไม่ออก
-- **SaveLatent เก็บ latent ภาพ+เสียงรวมกันไม่ได้** (`'NestedTensor' object has no attribute 'contiguous'`) จึงแยกด้วย `LTXVSeparateAVLatent` ก่อน
+- **chain ต้องมีตัวยึดสองตัว** ตัวยึดของรอบแรกผูกขนาด 0.4 MP ถ้าใช้ตัวเดียวกับรอบสองจะพัง
+  `shape mismatch [4929,96] vs [5556,96]` ที่ SamplerCustomAdvanced
+- **อย่าลดรอบแรกต่ำกว่า 7 step** วัดแล้วเสียงพูดตัวละครแย่ลงชัด ส่วนภาพคมเพราะการขยาย ไม่ได้มาจาก step
 - **โหนดขยาย latent สองรุ่นรับ input ไม่เหมือนกัน** รุ่นที่ setup ล็อกไว้ (64fc9d4) บังคับ `keep_proportion`
   รุ่นใหม่กว่าใช้ `enable_temporal_chunking` `force_unload` แทน กราฟใส่ไว้ครบทุกคีย์ ใช้ได้ทั้งสองรุ่น อย่าลบทิ้ง
-- **RTX 5090 เช่า:** สูตรรวดเดียว 59–68 วิต่อคลิป 9 วิ (เร็วกว่า 5060 Ti ราว 4.2 เท่า) วัด 19 ก.ย. 2569
-- **จับเวลาดราฟซ้ำคลิปเดิมจะหลอก** ComfyUI แคชรอบแรกไว้ถ้าอินพุตเหมือนเดิม
+- **จับเวลาซ้ำคลิปเดิมจะหลอก** ComfyUI แคชผลไว้ถ้าอินพุตเหมือนเดิม
 
 ## กฎที่ทำให้ลูปนี้ไม่พังเงียบ
 
@@ -134,6 +97,8 @@ cr.run(f, out=OUT / "shot01.mp4")
 
 ```python
 ref = cr.last_frame(video)      # ffmpeg + คัดลอกเข้า input/ คืน "clip1_last.png"
+cr.set_input(wf, "600", "image", ref)          # กราฟ chain: เฟรมแรกของคลิปนี้ = รูปนี้
+# หรือใช้เป็นแค่รูปอ้างอิง (ไม่ล็อกเฟรมแรก) ในกราฟธรรมดา:
 cr.add_load_image(wf, ref, "202", wire_to="137", wire_key="ref_images.ref_image_2")
 ```
 หรือจาก command line: `python comfy_run.py last-frame clip.mp4`
@@ -142,7 +107,7 @@ cr.add_load_image(wf, ref, "202", wire_to="137", wire_key="ref_images.ref_image_
   แล้วเขียนทับทุกเฟรม ตัวที่ค้างอยู่ตอนจบคือเฟรมสุดท้ายจริง ไม่ต้องถอดทั้งคลิป
 - **LoadImage อ่านจาก `<ComfyUI>/input` เท่านั้น** path เต็มใช้ไม่ได้ `last_frame()` คัดลอกให้แล้ว
 - **ชื่อไฟล์ต้องไม่ซ้ำระหว่างคลิป** อย่าใช้ `last.png` ร่วมกัน
-- **โหนด `202` เป็นการแทรกโหนดใหม่** ไม่ใช่โหนดที่มีอยู่ เลือก id ที่ยังว่าง
+- **โหนด `202` เป็นการแทรกโหนดใหม่** (`600` มีอยู่แล้วในกราฟ chain) ไม่ใช่โหนดที่มีอยู่ เลือก id ที่ยังว่าง
 - **ทิศทางของโซ่เลือกตามว่าฉากเคลื่อนหรือนิ่ง** ฉากนิ่งอ้างคลิปแรกตลอด ฉากเดินหน้าอ้างคลิปก่อนหน้า
   ผิดแบบแล้วพังคนละอาการ — ดู [h3-prompt](../h3-prompt/SKILL.md)
 

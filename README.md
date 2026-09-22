@@ -43,7 +43,7 @@ Copy-Item -Recurse -Force "$env:TEMP\h3-comfy\skills\*" "$env:USERPROFILE\.claud
 
 **ห้ามทำ**
 
-- **ห้ามรัน `setup.sh`** เว้นแต่ผู้ใช้ขอติดตั้งตัวโมเดลจริงๆ มันโหลดไฟล์ **38 GB**
+- **ห้ามรัน `setup.sh`** เว้นแต่ผู้ใช้ขอติดตั้งตัวโมเดลจริงๆ มันโหลดไฟล์ **45 GB**
   และต้องใช้การ์ด NVIDIA RTX 50 ซีรีส์ ถามก่อนเสมอ
 - **ห้ามรัน `find_ceiling.py`** เป็นของเสริม กินเวลา 10-20 นาที
 - **ห้ามขอหรือรับ token ใดๆ จากผู้ใช้** ทุกสคริปต์อ่านจาก `$HF_TOKEN` ที่ผู้ใช้ตั้งเอง
@@ -85,7 +85,7 @@ H3 เจนคลิปวิดีโอที่มีทั้งภาพ�
 | | ขั้นต่ำ | หมายเหตุ |
 |---|---|---|
 | **การ์ดจอ** | **NVIDIA RTX 50 ซีรีส์ · VRAM 16 GB** | **รุ่นอื่นใช้ไม่ได้** ดูข้างล่าง |
-| พื้นที่ว่าง | 100 GB (120 GB ถ้าใช้ Singularity) | ตัวโมเดล 38 GB (+21 GB Singularity) ที่เหลือไว้เก็บคลิป |
+| พื้นที่ว่าง | 100 GB | ตัวโมเดล 45 GB ที่เหลือไว้เก็บคลิป |
 | ComfyUI | **ไม่ต้องมีก่อนก็ได้** | `install_comfy.sh` ลงให้ (Linux) · เครื่องเช่าเลือกเทมเพลตที่มี ComfyUI มาเลยก็ได้ |
 | บัญชี Hugging Face | ฟรี | ใช้โหลดไฟล์โมเดล |
 
@@ -104,7 +104,7 @@ H3 เจนคลิปวิดีโอที่มีทั้งภาพ�
 วัดมาจากการ์ดตระกูลนี้ จึงรับประกันเฉพาะตระกูลนี้ การ์ดรุ่นเก่ากว่ารันโมเดลนี้ได้เหมือนกัน
 แต่เราไม่มีตัวเลขที่วัดเองยืนยัน — อยากลองเองใช้ `FORCE=1` ได้ แต่ไม่มีอะไรรับประกัน
 
-`check_stack.py` ตรวจให้ตั้งแต่**ก่อนโหลดไฟล์ 38 GB** เผลอเช่าผิดรุ่นจึงเสียแค่ค่าเช่าไม่กี่นาที
+`check_stack.py` ตรวจให้ตั้งแต่**ก่อนโหลดไฟล์ 45 GB** เผลอเช่าผิดรุ่นจึงเสียแค่ค่าเช่าไม่กี่นาที
 
 ---
 
@@ -138,9 +138,9 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 ```
 h3-comfy/
 ├── guides/            คู่มือจับมือทำ ภาษาชาวบ้าน ไม่ต้องใช้รูป
-├── workflow/          กราฟ ComfyUI สำหรับ H3 (ทุกคนใช้ตัวเดียวกัน)
-│                      + h3_singularity_*.json สูตรสองรอบ ดราฟ/เจนจริง (ดู skills/h3-run)
-│                      + h3_singularity_rent_*.json สูตรเดียวกันสำหรับการ์ดเช่า 0.4→1.0 MP
+├── workflow/          กราฟ ComfyUI สำหรับ H3 (ทุกคนใช้ตัวเดียวกัน) สูตร Singularity สองรอบ 0.4→1.0 MP
+│                      h3_singularity_rent_api.json       คลิปเดี่ยว
+│                      h3_singularity_rent_chain_api.json ต่อจากเฟรมสุดท้ายของคลิปก่อน (ดู skills/h3-run)
 ├── machine.json       ค่าของเครื่องคุณเอง — สร้างโดย setup.sh ตอนติดตั้ง
 └── skills/
     ├── h3-setup/      ติดตั้ง + ตรวจเครื่อง + หาเพดานของการ์ด
@@ -232,9 +232,6 @@ Copy-Item -Recurse h3-comfy\skills\* "$env:USERPROFILE\.claude\skills\"
 
 ชุดนี้อยู่ภายใต้ **Apache License 2.0** (ดู [LICENSE](LICENSE))
 
-ไฟล์ `skills/h3-setup/scripts/h3turbo_patched__init__.py` **ดัดแปลงมาจากงานของผู้อื่น**
-(ComfyUI-MiniMax-H3-Turbo โดย Larryvrh, Apache-2.0) รายละเอียดว่าแก้อะไรไปบ้าง
-อยู่ในไฟล์ [NOTICE](NOTICE)
 
 ## เครดิต
 
@@ -242,11 +239,9 @@ Copy-Item -Recurse h3-comfy\skills\* "$env:USERPROFILE\.claude\skills\"
 เพียงแต่ดาวน์โหลดจากต้นทางให้
 
 - MiniMax H3 — MiniMax / Comfy-Org
-- Turbo LoRA — larryvrh
-- โหนด Turbo — Larryvrh/ComfyUI-MiniMax-H3-Turbo
-- KJNodes, SolAttn — kijai
+- ref2v Turbo LoRA — Comfy-Org
+- KJNodes — kijai
 - Singularity (โมเดลและ workflow ต้นแบบ) — WarmBloodAban / AIGC特异点
 - SolAttnMiniMax — T8mars/comfyui-minimax-h3-audio-T8
-- MMH3 UltimateUpscale — bbaudio-2025
+- ComfyUI-H3-Multishot (H3ReferenceAudio) — jlucasmcrell
 - โหนดและโมเดลอัพสเกล latent 3D — LBH-123-AI
-- VideoHelperSuite — Kosinkadink

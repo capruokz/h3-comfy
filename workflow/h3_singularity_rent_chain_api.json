@@ -17,7 +17,7 @@
   "115": {
     "inputs": {
       "aspect_ratio": "9:16 (Portrait Widescreen)",
-      "megapixels": 0.3,
+      "megapixels": 0.4,
       "multiple": 32
     },
     "class_type": "ResolutionSelector",
@@ -78,7 +78,7 @@
   "124": {
     "inputs": {
       "scheduler": "beta",
-      "steps": 8,
+      "steps": 10,
       "denoise": 1,
       "model": [
         "134",
@@ -125,7 +125,7 @@
         0
       ],
       "conditioning": [
-        "137",
+        "601",
         0
       ]
     },
@@ -384,7 +384,7 @@
   "501": {
     "class_type": "SplitSigmas",
     "inputs": {
-      "step": 7,
+      "step": 8,
       "sigmas": [
         "124",
         0
@@ -409,7 +409,7 @@
       ],
       "model_name": "minimax_h3_latent_upscaler_3d_bf16.safetensors",
       "mode": "megapixels",
-      "mode.megapixels": 0.8,
+      "mode.megapixels": 1.0,
       "align": 32,
       "enable_temporal_chunking": true,
       "force_unload": true,
@@ -439,7 +439,7 @@
         0
       ],
       "guider": [
-        "126",
+        "603",
         0
       ],
       "sampler": [
@@ -454,6 +454,81 @@
         "504",
         0
       ]
+    }
+  },
+  "600": {
+    "inputs": {
+      "image": "prev_last_frame.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Previous clip last frame"
+    }
+  },
+  "601": {
+    "inputs": {
+      "positive": [
+        "137",
+        0
+      ],
+      "latent": [
+        "137",
+        1
+      ],
+      "frame_idx": 0,
+      "vae": [
+        "119",
+        0
+      ],
+      "image": [
+        "600",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3AddGuide",
+    "_meta": {
+      "title": "First-frame guide (pass 1)"
+    }
+  },
+  "602": {
+    "inputs": {
+      "positive": [
+        "137",
+        0
+      ],
+      "latent": [
+        "504",
+        0
+      ],
+      "frame_idx": 0,
+      "vae": [
+        "119",
+        0
+      ],
+      "image": [
+        "600",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3AddGuide",
+    "_meta": {
+      "title": "First-frame guide (pass 2, upscaled size)"
+    }
+  },
+  "603": {
+    "inputs": {
+      "model": [
+        "134",
+        0
+      ],
+      "conditioning": [
+        "602",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Basic Guider (pass 2)"
     }
   }
 }

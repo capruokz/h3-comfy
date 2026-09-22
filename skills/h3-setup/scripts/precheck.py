@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-NEED_DISK_GB = 100          # โมเดล 38 GB + ComfyUI ~5 GB + ที่เหลือไว้เก็บคลิป
+NEED_DISK_GB = 100          # โมเดล 45 GB + ComfyUI ~5 GB + ที่เหลือไว้เก็บคลิป
 NEED_VRAM_GB = 15
 BLACKWELL = (10, 0)         # compute capability ของ RTX 50 ซีรีส์ = 12.0 · B200 = 10.0
 ADA = (8, 9)                # RTX 40 ซีรีส์ ใช้ได้แบบทดลอง: int8 ได้ แต่ NVFP4 ต้องคลายตอนคำนวณ

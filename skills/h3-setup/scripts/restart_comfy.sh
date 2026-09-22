@@ -91,9 +91,9 @@ for i in $(seq 1 60); do
     python - "$PORT" <<'PY'
 import json, sys, urllib.request
 o = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{sys.argv[1]}/object_info", timeout=300).read())
-need = ["MiniMaxH3ReferenceToVideo", "MiniMaxH3TurboLoRA", "MiniMaxH3TurboSampler",
-        "PathchSageAttentionKJ", "MiniMaxH3MemoryEfficientSageAttentionPatch",
-        "SolAttnPatch", "ResolutionSelector", "ComfyMathExpression"]
+need = ["MiniMaxH3ReferenceToVideo", "MiniMaxH3AddGuide", "MiniMaxH3MemoryEfficientSageAttentionPatch",
+        "SolAttnMiniMax", "MinimaxH3LatentUpscaler3D", "H3ReferenceAudio", "ModelAttentionBackend",
+        "ResolutionSelector", "ComfyMathExpression", "LTXVSeparateAVLatent", "LTXVConcatAVLatent"]
 miss = [n for n in need if n not in o]
 unet = o.get("UNETLoader", {}).get("input", {}).get("required", {}).get("unet_name", [[]])[0]
 print("nodes :", "all present" if not miss else "MISSING " + ", ".join(miss))

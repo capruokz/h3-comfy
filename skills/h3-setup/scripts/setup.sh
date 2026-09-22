@@ -5,7 +5,7 @@
 #   bash setup.sh              # ตรวจเครื่องก่อน ถ้าไม่ผ่านจะหยุด
 #   bash setup.sh --fix        # ลง torch cu130 + SageAttention 2.2 ให้ก่อน แล้วค่อยติดตั้ง
 #
-# ตรวจเครื่องก่อนโหลด 38 GB โดยตั้งใจ — การมารู้ตอนโหลดเสร็จว่า CUDA เป็นเวอร์ชันผิด
+# ตรวจเครื่องก่อนโหลด 45 GB โดยตั้งใจ — การมารู้ตอนโหลดเสร็จว่า CUDA เป็นเวอร์ชันผิด
 # คือวิธีเรียนรู้ที่แพงที่สุด เพราะจ่ายค่าเช่าไประหว่างรอโหลดแล้ว
 set -euo pipefail
 
@@ -71,9 +71,27 @@ if ! $PY "$HERE/check_stack.py"; then
   echo "!! FORCE=1 -- รันต่อทั้งที่เครื่องไม่ผ่านการตรวจ ตัวเลขที่ได้จะเชื่อไม่ได้"
 fi
 
+# --- 0.5 ComfyUI ต้องใหม่พอ ---------------------------------------------------
+# MiniMaxH3AddGuide (ต่อเฟรมแรกจากคลิปก่อน) เพิ่งเข้า core เมื่อ 13 ส.ค. 2569 และ
+# comfy_kitchen ที่มี sol_attn (โหนด SolAttnMiniMax) มากับ requirements รุ่นเดียวกัน
+# เทมเพลต vast มักเก่ากว่านั้น -- ถ้าไม่มีโหนดนี้ ย้ายไปคอมมิตที่เราใช้จริงแล้วลง requirements ใหม่
+COMFY_PIN=ee71d5c4993f29086b27fde1629a945ae48425bf   # 15 ก.ย. 2569 ตัวที่เจนงานจริงอยู่
+if ! grep -q "MiniMaxH3AddGuide" "$COMFY/comfy_extras/nodes_minimax_h3.py" 2>/dev/null; then
+  if [ -d "$COMFY/.git" ]; then
+    echo ">> ComfyUI เก่าเกินไป (ไม่มี MiniMaxH3AddGuide) ย้ายไป ${COMFY_PIN:0:10}"
+    { git -C "$COMFY" fetch -q origin "$COMFY_PIN" || git -C "$COMFY" fetch -q origin; } && git -C "$COMFY" checkout -q "$COMFY_PIN" \
+      && $PY -m pip install -q -r "$COMFY/requirements.txt" \
+      || echo "!! อัปเดต ComfyUI ไม่สำเร็จ -- การต่อเฟรม (SING_FIRST) จะรันไม่ได้"
+  else
+    echo "!! $COMFY ไม่ใช่ git repo อัปเดตเองไม่ได้ -- ติดตั้งใหม่ด้วย install_comfy.sh"
+  fi
+fi
+grep -q "MiniMaxH3AddGuide" "$COMFY/comfy_extras/nodes_minimax_h3.py" 2>/dev/null \
+  && echo "ComfyUI มี MiniMaxH3AddGuide แล้ว" || echo "!! ยังไม่มี MiniMaxH3AddGuide"
+
 # --- 1. เร่งความเร็วดาวน์โหลด ------------------------------------------------
 # Hugging Face ย้ายจาก Git LFS มาเป็น Xet แล้ว โหมดหลายคอนเนกชันปิดไว้เป็นค่าเริ่มต้น
-# ซึ่งกับไฟล์รวม 38 GB คือความต่างระหว่าง "ไม่กี่นาที" กับ "เป็นชั่วโมง" ของเวลาที่จ่ายเงินอยู่
+# ซึ่งกับไฟล์รวม 45 GB คือความต่างระหว่าง "ไม่กี่นาที" กับ "เป็นชั่วโมง" ของเวลาที่จ่ายเงินอยู่
 $PY -m pip install -q -U "huggingface_hub[hf_xet]"
 # ค่าตั้งต้นเปิด Xet ไว้เพราะวัดแล้วเร็วกว่าจริง (605 MB: 59.7 vs 52.8 MB/s ·
 # 780 MB: 72.8 vs 30.7 MB/s) แต่ `:-` สำคัญ: บางเครื่องต่อไปยัง CAS backend ของ Xet
@@ -87,54 +105,22 @@ export HF_HUB_DISABLE_XET="${HF_HUB_DISABLE_XET:-0}"
 
 dl() { echo ">> $2"; hf download "$1" "$2" --local-dir "$3" ${4:+--revision "$4"}; }  # arg 4 = revision (ไม่ใส่ = main)
 
-# --- 2. โมเดล รวม 38.0 GB (+21 GB ถ้าใช้ Singularity) ----------------------------------------------------
+# --- 2. โมเดล รวม 45 GB --------------------------------------------------------
+# ชุดเดียวกับที่เจนงานจริงบนเครื่องเช่า (workflow/h3_singularity_rent*_api.json):
+# Singularity ref2va int8 + ref2v_turbo_4step LoRA, เจนฐาน 0.4 MP 8 step -> ขยาย latent
+# เป็น 1.0 MP -> อีก 2 step · 5090 เช่าคลิป 9 วิ ราว 94 วิ
 mkdir -p "$COMFY"/models/{diffusion_models,text_encoders,vae,loras,latent_upscale_models}
-# โมเดลหลัก -- ตัวเดียวกับเครื่องที่ใช้เจนงานจริง: fl2va INT4Q (18.5 GB) คู่กับ turbo_v4 LoRA
-# วัด 11 ก.ย. 2569 ช็อตเดียวกัน 0.6 MP: fl2va INT4Q + turbo_v4 ความคม 317.6 ·
-# ref2va INT4Q + ref2v_turbo_4step ได้ 221.3 -- ตระกูลโมเดลต้องดูคู่กับ LoRA ไม่ใช่กฎเดี่ยว
-# INT4Q ใช้ VRAM ราว 8 GB ใช้ไฟล์เดียวกันได้ทั้งการ์ด 16 GB และ 32 GB
-dl tsolful/Minimax_H3_INT4MixedConvRot minimax_h3_fl2va_pruned_INT4Q.safetensors "$COMFY/models/diffusion_models"
+dl WarmBloodAban/Minimax-h3_Singularity Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors "$COMFY/models/diffusion_models"
 dl Comfy-Org/MiniMax-H3 text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors "$COMFY/models"
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_video_vae_fp16.safetensors "$COMFY/models"
 dl Comfy-Org/MiniMax-H3 vae/minimax_h3_audio_vae_fp32.safetensors "$COMFY/models"
-dl larryvrh/MiniMax-H3-Turbo-Lora minimax_h3_turbo_v4_step600_ema.safetensors "$COMFY/models/loras"
-
-# LoRA เนื้อภาพ "Authentic cinematic texture" -- ดันดำที่จมสนิทให้กลับมามีรายละเอียด
-# (วัดแล้ว L* p1 จาก 1.5 ขึ้นเป็น 4.1) และลดอิ่มสีจาก 141 เหลือ 98 ซึ่งเป็นสองอย่าง
-# ที่สั่งในพรอมป์ตแล้วไม่เป็นผลเลย ใช้ที่ strength 0.7
-# CivitAI บังคับโทเคน ถ้าไม่ตั้ง CIVITAI_TOKEN จะข้ามพร้อมบอกวิธี
-CINE_DIR="$COMFY/models/loras/minimax-h3"
-CINE_LORA="$CINE_DIR/Minimax H3Authentic cinematic texture.safetensors"
-if [ -f "$CINE_LORA" ]; then
-  echo ">> LoRA เนื้อภาพ: มีแล้ว ข้าม"
-elif [ -n "${CIVITAI_TOKEN:-}" ]; then
-  mkdir -p "$CINE_DIR"
-  echo ">> LoRA เนื้อภาพ (CivitAI 3267949)"
-  curl -fL --retry 3 -o "$CINE_LORA"     -H "Authorization: Bearer $CIVITAI_TOKEN"     "https://civitai.com/api/download/models/3267949"     || { rm -f "$CINE_LORA"; echo "!! โหลด LoRA เนื้อภาพไม่สำเร็จ ข้ามไปก่อน"; }
-else
-  echo "!! ข้าม LoRA เนื้อภาพ: ไม่ได้ตั้ง CIVITAI_TOKEN"
-  echo "   เอาโทเคนจาก https://civitai.com/user/account แล้วรันใหม่แบบ"
-  echo "   CIVITAI_TOKEN=xxxx bash setup.sh"
-fi
-# ตัวขยาย latent 3D 691 MB -- ใช้กับสูตรเจนฐานความละเอียดต่ำแล้วขยาย ซึ่งได้ภาพ
-# คมกว่าและเร็วกว่าการเจนที่ความละเอียดปลายทางตรง ๆ
-# ล็อก revision ไว้: 17 ก.ย. 2569 เจ้าของรีโปย้ายไฟล์ไปโฟลเดอร์ minimax_h3_latent_upscaler_3d_conv_v1/
-# และเปลี่ยนชื่อ ทำให้ชื่อเดิมบน main หายไป (File not found) ไฟล์ข้างในตัวเดียวกัน sha256 4f57821f...
+dl Comfy-Org/MiniMax-H3 loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors "$COMFY/models"
 dl LBH-123-AI/Minimax_h3_latent_Upscaler minimax_h3_latent_upscaler_3d_bf16.safetensors "$COMFY/models/latent_upscale_models" 13ccf95d85d120bdbc92c05b1247a6e147bf54bf
 
-# สูตร Singularity สองรอบ (workflow/h3_singularity_*.json) -- เพิ่มอีก 21 GB
-# เจนฐาน 0.3 MP 7 step -> ขยาย latent เป็น 0.8 MP -> อีก 1 step ภาพคมกว่าและเสียงชัดกว่าสูตรหลัก
-# วัด 18 ก.ย. 2569 บน 5060 Ti คลิป 9 วิ: 285 วิ (ดราฟ 156 + เจนจริง 141)
-# ไม่ใช้สูตรนี้ ตั้ง H3_SINGULARITY=0 ก่อนรันเพื่อข้าม
-if [ "${H3_SINGULARITY:-1}" = "1" ]; then
-  dl WarmBloodAban/Minimax-h3_Singularity Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors "$COMFY/models/diffusion_models"
-  dl Comfy-Org/MiniMax-H3 loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors "$COMFY/models"
-fi
-
 # --- 3. custom node ล็อกคอมมิตไว้ --------------------------------------------
-# หกชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, ResolutionSelector,
-# ComfyMathExpression, SplitSigmas, SamplerCustomAdvanced, BasicGuider,
-# LTXVSeparateAVLatent, LTXVConcatAVLatent -- อยู่ใน comfy_extras ของ ComfyUI เองแล้ว
+# สี่ชุด ที่เหลือที่กราฟใช้ -- MiniMaxH3ReferenceToVideo, MiniMaxH3AddGuide, ResolutionSelector,
+# ComfyMathExpression, SplitSigmas, SamplerCustomAdvanced, BasicGuider, LoraLoader,
+# ModelAttentionBackend, LTXVSeparateAVLatent, LTXVConcatAVLatent -- อยู่ใน ComfyUI เองแล้ว
 clone() {  # url, dir, commit
   local d="$COMFY/custom_nodes/$2"
   [ -d "$d" ] || git clone "$1" "$d"
@@ -142,61 +128,29 @@ clone() {  # url, dir, commit
   git -C "$d" checkout -q "$3" 2>/dev/null || echo "!! $2: ไม่มีคอมมิต $3 ใช้ HEAD แทน"
   [ -f "$d/requirements.txt" ] && $PY -m pip install -q -r "$d/requirements.txt" || true
 }
-clone https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo ComfyUI-MiniMax-H3-Turbo 55fee86
+# MiniMaxH3MemoryEfficientSageAttentionPatch (โหนด 213)
 clone https://github.com/kijai/ComfyUI-KJNodes              comfyui-kjnodes            dcfcb5d
-clone https://github.com/kijai/ComfyUI-SolAttn_triton       ComfyUI-SolAttn_triton     1b8dece
-# โหนดขยายภาพ -- ต่อท้าย sampler แล้ว re-sample ที่ความละเอียดสูงกว่า
-# หมายเหตุ: การหั่นไทล์ (spatial_split_param) ใช้กับ turbo LoRA ไม่ได้ ตกด้วย
-# tensor a (N) vs b (N-1) เหมือนบั๊ก ref_audio ข้างล่าง ให้ปล่อยไม่ต่อไว้
-clone https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale Comfyui-MMH3-UltimateUpscale HEAD
-# MinimaxH3LatentUpscaler3D -- คนละแพ็กกับ UltimateUpscale ข้างบน ใช้กับเส้นทางแบ่ง
-# sigma (เจนฐานเล็กบางสเตป -> ขยาย latent -> เก็บสเตปท้ายที่ขนาดจริง) ซึ่งเสียงถูกแยก
-# ออกด้วย LTXVSeparateAVLatent ก่อนขยาย จึงไม่เจอบั๊ก tensor a (3) vs b (4) เลย
+# MinimaxH3LatentUpscaler3D (โหนด 503) -- ขยาย latent ภาพระหว่างสองรอบ เสียงแยกออกด้วย
+# LTXVSeparateAVLatent ก่อนขยาย · รุ่น 64fc9d4 บังคับ keep_proportion ซึ่งกราฟส่งไปแล้ว
 clone https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler \
       Comfyui_Minimax_h3_latent_Upscaler 64fc9d4
-# VHS_LoadVideoPath -- แปลงคลิปเป็นเฟรม IMAGE ให้ ref_videos ของ MiniMaxH3ReferenceToVideo
-# ช่องนั้นรับ IMAGE ไม่ใช่ VIDEO โหนด Load Video ของคอร์จึงต่อตรงเข้าไปไม่ได้
-clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite \
-      comfyui-videohelpersuite 1.7.9
-# ComfyUI-Darkroom -- โหนดเกรดสีและฟิล์มสต็อก workflow ละครของเราต่อ
-# DarkroomFilmStockColor ไว้ท้าย VAEDecode ถ้าไม่มีแพ็กนี้ workflow จะตกทันทีที่คิว
-clone https://github.com/jeremieLouvaert/ComfyUI-Darkroom ComfyUI-Darkroom de6d4a8
-# ComfyUI-GGUF ไม่ได้ใช้กับ workflow หลักแล้ว (โมเดลหลักเป็น INT4Q) เก็บไว้ให้คนที่อยากลองไฟล์ .gguf
-# ComfyUI-GGUF ให้โหนด UnetLoaderGGUF
-# ComfyUI-H3-Multishot สอนสถาปัตยกรรม minimax_h3 ให้ ComfyUI-GGUF ตอนบูต
-# ถ้าไม่มีตัวหลัง จะโหลดไฟล์ .gguf ไม่ขึ้นเลย ฟ้องว่าไม่รู้จักสถาปัตยกรรม
-clone https://github.com/city96/ComfyUI-GGUF ComfyUI-GGUF HEAD
-# ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ที่ตัด ref เสียง
-# ให้เหลือ 0.6 วิ -- ทุกการ์ดต้องมี ไม่ใช่เฉพาะ GGUF ล็อกคอมมิตไว้ตามที่ใช้งานจริง
+# H3ReferenceAudio (โหนด 215 216) ตัด ref เสียงให้เหลือ 0.6 วิ -- ยาวกว่านั้น H3 พูดคำในไฟล์ออกมา
 clone https://github.com/jlucasmcrell/ComfyUI-H3-Multishot ComfyUI-H3-Multishot d7d1977
-# SolAttnMiniMax -- โหนดไฟล์เดียวของ workflow Singularity (ตัวเดียวกับที่ผู้ทำ Singularity ใช้)
-# มาจากแพ็กใหญ่ของ T8mars แต่เราเอาแค่ไฟล์นี้ ล็อกคอมมิตไว้ ต้องมี comfy_kitchen ที่มี sol_attn
+# SolAttnMiniMax (โหนด 217) -- โหนดไฟล์เดียวที่ผู้ทำ Singularity ใช้ มาจากแพ็กใหญ่ของ T8mars
+# แต่เราเอาแค่ไฟล์นี้ ล็อกคอมมิตไว้ ต้องมี comfy_kitchen ที่มี sol_attn (มากับขั้น 0.5)
 SOL_DIR="$COMFY/custom_nodes/ComfyUI-SolAttnMiniMax"
-if [ "${H3_SINGULARITY:-1}" = "1" ] && [ ! -f "$SOL_DIR/__init__.py" ]; then
+if [ ! -f "$SOL_DIR/__init__.py" ]; then
   mkdir -p "$SOL_DIR"
-  curl -fsSL -o "$SOL_DIR/__init__.py"     https://raw.githubusercontent.com/T8mars/comfyui-minimax-h3-audio-T8/8b379b42bde00a315aee146c8d4285e8caa80a5b/sol_attn_minimax_v2.py     || { rm -rf "$SOL_DIR"; echo "!! โหลด SolAttnMiniMax ไม่สำเร็จ -- workflow Singularity จะรันไม่ได้"; }
+  curl -fsSL -o "$SOL_DIR/__init__.py"     https://raw.githubusercontent.com/T8mars/comfyui-minimax-h3-audio-T8/8b379b42bde00a315aee146c8d4285e8caa80a5b/sol_attn_minimax_v2.py     || { rm -rf "$SOL_DIR"; echo "!! โหลด SolAttnMiniMax ไม่สำเร็จ -- workflow จะรันไม่ได้"; }
 fi
-$PY -c "import comfy_kitchen as c; assert c.sol_attn_is_available()" 2>/dev/null   || echo "!! comfy_kitchen ไม่มี sol_attn -- อัปเดต ComfyUI (pip install -U -r requirements.txt) ก่อนใช้ workflow Singularity"
+$PY -c "import comfy_kitchen as c; assert c.sol_attn_is_available()" 2>/dev/null   || echo "!! comfy_kitchen ไม่มี sol_attn -- อัปเดต ComfyUI (pip install -U -r requirements.txt) ก่อนเจน"
 
-# --- 4. แพตช์โหนด turbo ------------------------------------------------------
-# โหนดต้นฉบับจะตายทันทีที่ต่อ <Audio N> เดี่ยวๆ เข้าไป เพราะ _unique_t ของมันสร้าง
-# แถว timestep น้อยกว่าของ core อยู่หนึ่งแถว จน LoRA บวกเข้า projection ไม่ได้
-# (tensor a (3) vs b (2)) คลิปที่มีบทพูดทุกคลิปต้องต่อ ref เสียง จึงรันไม่ได้เลยถ้าไม่แพตช์
-#
-# หมายเหตุสำหรับคนที่เอาไปใช้ต่อ: นี่คือการเขียนทับไฟล์ของโปรเจกต์คนอื่น มันผูกกับ
-# คอมมิต 55fee86 ข้างบน ถ้าคุณเปลี่ยนไปใช้เวอร์ชันใหม่กว่า ให้ลองถอดแพตช์ก่อน
-# (คืนค่าจาก __init__.py.stock) แล้วดูว่าต้นทางแก้ให้แล้วหรือยัง
-NODE="$COMFY/custom_nodes/ComfyUI-MiniMax-H3-Turbo"
-cp -n "$NODE/__init__.py" "$NODE/__init__.py.stock" 2>/dev/null || true
-cp "$HERE/h3turbo_patched__init__.py" "$NODE/__init__.py"
-echo "แพตช์ ref_audio แล้ว (ของเดิมเก็บไว้ที่ __init__.py.stock)"
-
-# --- 5. เอาแฟล็กของเราใส่โปรเซสที่รันอยู่ ------------------------------------
+# --- 4. เอาแฟล็กของเราใส่โปรเซสที่รันอยู่ ------------------------------------
 # เทมเพลตเปิด ComfyUI มาโดยไม่มี --use-sage-attention และโปรเซสที่เปิดมาก่อนขั้นที่ 2
 # ก็มองไม่เห็นโมเดลอยู่ดี เพราะ ComfyUI อ่านรายชื่อไฟล์ครั้งเดียวตอนบูต
 bash "$HERE/restart_comfy.sh" || { echo "!! ComfyUI ไม่กลับมา -- แก้ตรงนี้ก่อนไปต่อ"; exit 1; }
 
-# --- 6. จดว่า ComfyUI อยู่ไหน ------------------------------------------------
+# --- 5. จดว่า ComfyUI อยู่ไหน ------------------------------------------------
 # ตรงนี้เรารู้คำตอบแล้วจาก comfy_env.sh ซึ่งอ่านจากโปรเซสที่รันอยู่จริง
 # สคริปต์ตัวอื่นจะได้ไม่ต้องเดาเอง -- และเดาไม่ได้ด้วย เพราะ /system_stats ของ ComfyUI
 # ไม่ได้บอก path ของตัวเอง

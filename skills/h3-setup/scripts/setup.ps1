@@ -55,8 +55,27 @@ if ($LASTEXITCODE -ne 0 -and -not $Force) {
     exit 1
 }
 
+# --- 1.5 ComfyUI ต้องใหม่พอ --------------------------------------------------
+# MiniMaxH3AddGuide (ต่อเฟรมแรกจากคลิปก่อน) เข้า core เมื่อ 13 ส.ค. 2569 และ comfy_kitchen
+# ที่มี sol_attn มากับ requirements รุ่นเดียวกัน ถ้าไม่มี ย้ายไปคอมมิตที่เจนงานจริงอยู่
+$comfyPin = "ee71d5c4993f29086b27fde1629a945ae48425bf"   # 15 ก.ย. 2569
+$h3nodes = Join-Path $Comfy "comfy_extras\nodes_minimax_h3.py"
+if (-not ((Test-Path $h3nodes) -and (Select-String -Quiet -Path $h3nodes -Pattern "MiniMaxH3AddGuide"))) {
+    if (Test-Path (Join-Path $Comfy ".git")) {
+        Write-Host ">> ComfyUI เก่าเกินไป (ไม่มี MiniMaxH3AddGuide) ย้ายไป $($comfyPin.Substring(0,10))"
+        git -C $Comfy fetch -q origin
+        git -C $Comfy checkout -q $comfyPin
+        & $Python -m pip install -q -r (Join-Path $Comfy "requirements.txt")
+    } else {
+        Write-Host "!! $Comfy ไม่ใช่ git repo อัปเดตเองไม่ได้ -- ติดตั้งใหม่ด้วย install_comfy.ps1"
+    }
+}
+if ((Test-Path $h3nodes) -and (Select-String -Quiet -Path $h3nodes -Pattern "MiniMaxH3AddGuide")) {
+    Write-Host "ComfyUI มี MiniMaxH3AddGuide แล้ว"
+} else { Write-Host "!! ยังไม่มี MiniMaxH3AddGuide -- การต่อเฟรมจะรันไม่ได้" }
+
 # --- 2. เร่งความเร็วดาวน์โหลด ------------------------------------------------
-# HF ย้ายมาใช้ Xet แล้ว โหมดหลายคอนเนกชันปิดไว้เป็นค่าเริ่มต้น ซึ่งกับ 38 GB
+# HF ย้ายมาใช้ Xet แล้ว โหมดหลายคอนเนกชันปิดไว้เป็นค่าเริ่มต้น ซึ่งกับ 45 GB
 # คือความต่างระหว่างไม่กี่นาทีกับเป็นชั่วโมง
 & $Python -m pip install -q -U "huggingface_hub[hf_xet]"
 # ค่าตั้งต้นเปิด Xet ไว้เพราะวัดแล้วเร็วกว่าจริง แต่ถ้าเครื่องไหนต่อไปยัง CAS backend
@@ -89,52 +108,20 @@ function Get-Model($repo, $file, $dir, $rev = $null) {
     if ($LASTEXITCODE -ne 0) { Write-Host "โหลด $file ไม่สำเร็จ"; exit 1 }
 }
 
-# --- 3. โมเดล รวม 38.0 GB (+21 GB ถ้าใช้ Singularity) ----------------------------------------------------
+# --- 3. โมเดล รวม 45 GB --------------------------------------------------------
+# ชุดเดียวกับที่เจนงานจริง (workflow\h3_singularity_rent*_api.json):
+# Singularity ref2va int8 + ref2v_turbo_4step LoRA, 0.4 MP 8 step -> ขยาย latent เป็น 1.0 MP -> อีก 2 step
 foreach ($sub in @("diffusion_models", "text_encoders", "vae", "loras",
                    "latent_upscale_models")) {
     New-Item -ItemType Directory -Force (Join-Path $Comfy "models\$sub") | Out-Null
 }
-# โมเดลหลัก -- ตัวเดียวกับเครื่องที่ใช้เจนงานจริง: fl2va INT4Q (18.5 GB) คู่กับ turbo_v4 LoRA
-# วัด 11 ก.ย. 2569: ความคม 317.6 เทียบ ref2va INT4Q + ref2v_turbo 221.3 · ใช้ VRAM ราว 8 GB ทุกการ์ด
-Get-Model "tsolful/Minimax_H3_INT4MixedConvRot" "minimax_h3_fl2va_pruned_INT4Q.safetensors" (Join-Path $Comfy "models\diffusion_models")
+Get-Model "WarmBloodAban/Minimax-h3_Singularity" "Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors" (Join-Path $Comfy "models\diffusion_models")
 Get-Model "Comfy-Org/MiniMax-H3" "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" (Join-Path $Comfy "models")
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_video_vae_fp16.safetensors" (Join-Path $Comfy "models")
 Get-Model "Comfy-Org/MiniMax-H3" "vae/minimax_h3_audio_vae_fp32.safetensors" (Join-Path $Comfy "models")
-Get-Model "larryvrh/MiniMax-H3-Turbo-Lora" "minimax_h3_turbo_v4_step600_ema.safetensors" (Join-Path $Comfy "models\loras")
+Get-Model "Comfy-Org/MiniMax-H3" "loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors" (Join-Path $Comfy "models")
 # ล็อก revision ไว้: 17 ก.ย. 2569 เจ้าของรีโปย้ายไฟล์ไปโฟลเดอร์ใหม่และเปลี่ยนชื่อ ชื่อเดิมบน main หายไป
 Get-Model "LBH-123-AI/Minimax_h3_latent_Upscaler" "minimax_h3_latent_upscaler_3d_bf16.safetensors" (Join-Path $Comfy "models\latent_upscale_models") "13ccf95d85d120bdbc92c05b1247a6e147bf54bf"
-
-# สูตร Singularity สองรอบ (workflow\h3_singularity_*.json) -- เพิ่มอีก 21 GB
-# เจนฐาน 0.3 MP 7 step -> ขยาย latent เป็น 0.8 MP -> อีก 1 step วัดบน 5060 Ti คลิป 9 วิ: 285 วิ
-# ไม่ใช้สูตรนี้ ตั้ง $env:H3_SINGULARITY = "0" ก่อนรันเพื่อข้าม
-if ($env:H3_SINGULARITY -ne "0") {
-    Get-Model "WarmBloodAban/Minimax-h3_Singularity" "Minimax-h3_Singularity_ref2va_Pruned_v1.3_int8.safetensors" (Join-Path $Comfy "models\diffusion_models")
-    Get-Model "Comfy-Org/MiniMax-H3" "loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors" (Join-Path $Comfy "models")
-}
-
-# LoRA เนื้อภาพ "Authentic cinematic texture" -- ดันดำที่จมสนิทให้กลับมามีรายละเอียด
-# (L* p1 จาก 1.5 ขึ้นเป็น 4.1) และลดอิ่มสีจาก 141 เหลือ 98 ใช้ที่ strength 0.7
-# CivitAI บังคับโทเคน ถ้าไม่ตั้ง $env:CIVITAI_TOKEN จะข้ามพร้อมบอกวิธี
-$cineDir  = Join-Path $Comfy "models\loras\minimax-h3"
-$cineLora = Join-Path $cineDir "Minimax H3Authentic cinematic texture.safetensors"
-if (Test-Path $cineLora) {
-    Write-Host ">> LoRA เนื้อภาพ: มีแล้ว ข้าม"
-} elseif ($env:CIVITAI_TOKEN) {
-    New-Item -ItemType Directory -Force $cineDir | Out-Null
-    Write-Host ">> LoRA เนื้อภาพ (CivitAI 3267949)"
-    try {
-        Invoke-WebRequest -Uri "https://civitai.com/api/download/models/3267949" `
-            -Headers @{ Authorization = "Bearer $env:CIVITAI_TOKEN" } `
-            -OutFile $cineLora -ErrorAction Stop
-    } catch {
-        if (Test-Path $cineLora) { Remove-Item $cineLora -Force }
-        Write-Host "!! โหลด LoRA เนื้อภาพไม่สำเร็จ ข้ามไปก่อน"
-    }
-} else {
-    Write-Host "!! ข้าม LoRA เนื้อภาพ: ไม่ได้ตั้ง CIVITAI_TOKEN"
-    Write-Host "   เอาโทเคนจาก https://civitai.com/user/account แล้วรันใหม่แบบ"
-    Write-Host '   $env:CIVITAI_TOKEN = "xxxx"; .\setup.ps1'
-}
 
 # --- 4. custom node ล็อกคอมมิตไว้ --------------------------------------------
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -150,46 +137,28 @@ function Get-Node($url, $name, $commit) {
     $req = Join-Path $d "requirements.txt"
     if (Test-Path $req) { & $Python -m pip install -q -r $req }
 }
-Get-Node "https://github.com/Larryvrh/ComfyUI-MiniMax-H3-Turbo" "ComfyUI-MiniMax-H3-Turbo" "55fee86"
+# MiniMaxH3MemoryEfficientSageAttentionPatch (โหนด 213)
 Get-Node "https://github.com/kijai/ComfyUI-KJNodes"             "comfyui-kjnodes"          "dcfcb5d"
-Get-Node "https://github.com/kijai/ComfyUI-SolAttn_triton"      "ComfyUI-SolAttn_triton"   "1b8dece"
-Get-Node "https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale" "Comfyui-MMH3-UltimateUpscale" "HEAD"
-# MinimaxH3LatentUpscaler3D -- คนละแพ็กกับ UltimateUpscale ใช้กับเส้นทางแบ่ง sigma
+# MinimaxH3LatentUpscaler3D (โหนด 503) ขยาย latent ภาพระหว่างสองรอบ
 Get-Node "https://github.com/LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler" "Comfyui_Minimax_h3_latent_Upscaler" "64fc9d4"
-# VHS_LoadVideoPath -- ref_videos รับ IMAGE ไม่ใช่ VIDEO จึงต้องมีตัวแปลงคลิปเป็นเฟรม
-Get-Node "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite" "comfyui-videohelpersuite" "1.7.9"
-# ComfyUI-Darkroom -- โหนดเกรดสีและฟิล์มสต็อก workflow ละครต่อ DarkroomFilmStockColor
-# ไว้ท้าย VAEDecode ถ้าไม่มีแพ็กนี้ workflow จะตกทันทีที่คิว
-Get-Node "https://github.com/jeremieLouvaert/ComfyUI-Darkroom" "ComfyUI-Darkroom" "de6d4a8"
-# จำเป็นเฉพาะเส้นทาง GGUF: UnetLoaderGGUF + ตัวสอนสถาปัตยกรรม minimax_h3 ให้มัน
-Get-Node "https://github.com/city96/ComfyUI-GGUF" "ComfyUI-GGUF" "HEAD"
-# ComfyUI-H3-Multishot ยังให้โหนด H3ReferenceAudio (โหนด 215 216 ใน workflow) ทุกการ์ดต้องมี
+# H3ReferenceAudio (โหนด 215 216) ตัด ref เสียงให้เหลือ 0.6 วิ
 Get-Node "https://github.com/jlucasmcrell/ComfyUI-H3-Multishot" "ComfyUI-H3-Multishot" "d7d1977"
-# SolAttnMiniMax -- โหนดไฟล์เดียวของ workflow Singularity ล็อกคอมมิตไว้ (ต้องมี comfy_kitchen ที่มี sol_attn)
+# SolAttnMiniMax (โหนด 217) -- โหนดไฟล์เดียวของ Singularity ล็อกคอมมิตไว้ (ต้องมี comfy_kitchen ที่มี sol_attn)
 $solDir = Join-Path $Comfy "custom_nodes\ComfyUI-SolAttnMiniMax"
-if ($env:H3_SINGULARITY -ne "0" -and -not (Test-Path (Join-Path $solDir "__init__.py"))) {
+if (-not (Test-Path (Join-Path $solDir "__init__.py"))) {
     New-Item -ItemType Directory -Force $solDir | Out-Null
     try {
         Invoke-WebRequest -Uri "https://raw.githubusercontent.com/T8mars/comfyui-minimax-h3-audio-T8/8b379b42bde00a315aee146c8d4285e8caa80a5b/sol_attn_minimax_v2.py" `
             -OutFile (Join-Path $solDir "__init__.py") -ErrorAction Stop
     } catch {
         Remove-Item $solDir -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "!! โหลด SolAttnMiniMax ไม่สำเร็จ -- workflow Singularity จะรันไม่ได้"
+        Write-Host "!! โหลด SolAttnMiniMax ไม่สำเร็จ -- workflow จะรันไม่ได้"
     }
 }
 & $Python -c "import comfy_kitchen as c; assert c.sol_attn_is_available()" 2>$null
-if ($LASTEXITCODE -ne 0) { Write-Host "!! comfy_kitchen ไม่มี sol_attn -- อัปเดต ComfyUI ก่อนใช้ workflow Singularity" }
+if ($LASTEXITCODE -ne 0) { Write-Host "!! comfy_kitchen ไม่มี sol_attn -- อัปเดต ComfyUI ก่อนเจน" }
 
-# --- 5. แพตช์โหนด turbo ------------------------------------------------------
-# โหนดต้นฉบับตายทันทีที่ต่อ <Audio N> เดี่ยวๆ คลิปที่มีบทพูดจึงรันไม่ได้เลยถ้าไม่แพตช์
-# ของเดิมเก็บไว้ที่ __init__.py.stock -- ดู NOTICE ที่รากรีโป
-$node = Join-Path $Comfy "custom_nodes\ComfyUI-MiniMax-H3-Turbo"
-$stock = Join-Path $node "__init__.py.stock"
-if (-not (Test-Path $stock)) { Copy-Item (Join-Path $node "__init__.py") $stock }
-Copy-Item (Join-Path $HERE "h3turbo_patched__init__.py") (Join-Path $node "__init__.py") -Force
-Write-Host "แพตช์ ref_audio แล้ว (ของเดิมเก็บไว้ที่ __init__.py.stock)"
-
-# --- 6. เปิดใหม่ -------------------------------------------------------------
+# --- 5. เปิดใหม่ -------------------------------------------------------------
 # ComfyUI อ่านรายชื่อโมเดลครั้งเดียวตอนบูต โปรเซสที่เปิดค้างอยู่ก่อนขั้นที่ 3
 # จะมองไม่เห็นโมเดลที่เพิ่งโหลดมา
 Write-Host ">> เปิด ComfyUI ใหม่"
@@ -214,7 +183,7 @@ if (-not $ok) {
     exit 1
 }
 
-# --- 7. จดไว้ ----------------------------------------------------------------
+# --- 6. จดไว้ ----------------------------------------------------------------
 $d = if (Test-Path $mj) { Get-Content $mj -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
 $d | Add-Member -NotePropertyName comfy_root -NotePropertyValue $Comfy -Force
 $d | Add-Member -NotePropertyName comfy_api  -NotePropertyValue "http://127.0.0.1:$Port" -Force

@@ -69,8 +69,8 @@
 เปิดสามลิงก์นี้ทีละอัน ถ้าเจอปุ่มให้กดยอมรับก็กด ถ้าไม่เจอแปลว่าไม่ต้องทำอะไร:
 
 - https://huggingface.co/Comfy-Org/MiniMax-H3
-- https://huggingface.co/tsolful/Minimax_H3_INT4MixedConvRot
-- https://huggingface.co/larryvrh/MiniMax-H3-Turbo-Lora
+- https://huggingface.co/WarmBloodAban/Minimax-h3_Singularity
+- https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler
 
 ---
 
