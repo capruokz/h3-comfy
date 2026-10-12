@@ -92,7 +92,18 @@ grep -q "MiniMaxH3AddGuide" "$COMFY/comfy_extras/nodes_minimax_h3.py" 2>/dev/nul
 # --- 1. เร่งความเร็วดาวน์โหลด ------------------------------------------------
 # Hugging Face ย้ายจาก Git LFS มาเป็น Xet แล้ว โหมดหลายคอนเนกชันปิดไว้เป็นค่าเริ่มต้น
 # ซึ่งกับไฟล์รวม 45 GB คือความต่างระหว่าง "ไม่กี่นาที" กับ "เป็นชั่วโมง" ของเวลาที่จ่ายเงินอยู่
-$PY -m pip install -q -U "huggingface_hub[hf_xet]"
+# อัปเกรด huggingface_hub แต่ไม่เกินช่วงที่ transformers ในเครื่องยอมรับ
+# (เคยดึง 2.x มาแล้ว transformers ล้มด้วย "huggingface-hub>=1.5.0,<2.0 is required" ComfyUI ไม่ขึ้น
+# ต้องสั่งลดเวอร์ชันเองทุกครั้ง) -- อ่านเงื่อนไขจาก metadata ของ transformers ตัวที่ติดตั้งอยู่
+HUB_PIN=$($PY -c "
+import importlib.metadata as m, re
+try:
+    r = [x.split(';')[0] for x in (m.requires('transformers') or []) if re.match(r'huggingface[-_]hub', x, re.I) and 'extra' not in x]
+    print(re.sub(r'^huggingface[-_]hub\s*', '', r[0], flags=re.I).strip() if r else '')
+except m.PackageNotFoundError:
+    print('')
+" 2>/dev/null)
+$PY -m pip install -q -U "huggingface_hub[hf_xet]${HUB_PIN}"
 # ค่าตั้งต้นเปิด Xet ไว้เพราะวัดแล้วเร็วกว่าจริง (605 MB: 59.7 vs 52.8 MB/s ·
 # 780 MB: 72.8 vs 30.7 MB/s) แต่ `:-` สำคัญ: บางเครื่องต่อไปยัง CAS backend ของ Xet
 # ได้ไม่ดี อาการคือเร็วช่วงแรกแล้วร่วงเหลือหลักร้อย kB/s และแถบ reconstructing
