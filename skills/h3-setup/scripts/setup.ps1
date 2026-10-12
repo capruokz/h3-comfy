@@ -58,7 +58,19 @@ if ($LASTEXITCODE -ne 0 -and -not $Force) {
 # --- 2. เร่งความเร็วดาวน์โหลด ------------------------------------------------
 # HF ย้ายมาใช้ Xet แล้ว โหมดหลายคอนเนกชันปิดไว้เป็นค่าเริ่มต้น ซึ่งกับ 38 GB
 # คือความต่างระหว่างไม่กี่นาทีกับเป็นชั่วโมง
-& $Python -m pip install -q -U "huggingface_hub[hf_xet]"
+# อัปเกรด huggingface_hub แต่ไม่เกินช่วงที่ transformers ในเครื่องยอมรับ
+# (เคยดึง 2.x มาแล้ว transformers ล้มด้วย "huggingface-hub>=1.5.0,<2.0 is required" ComfyUI ไม่ขึ้น
+# ต้องสั่งลดเวอร์ชันเองทุกครั้ง) -- อ่านเงื่อนไขจาก metadata ของ transformers ตัวที่ติดตั้งอยู่
+$hubPinPy = @'
+import importlib.metadata as m, re
+try:
+    r = [x.split(';')[0] for x in (m.requires('transformers') or []) if re.match(r'huggingface[-_]hub', x, re.I) and 'extra' not in x]
+    print(re.sub(r'^huggingface[-_]hub\s*', '', r[0], flags=re.I).strip() if r else '')
+except m.PackageNotFoundError:
+    print('')
+'@
+$hubPin = (& $Python -c $hubPinPy 2>$null | Out-String).Trim()
+& $Python -m pip install -q -U "huggingface_hub[hf_xet]$hubPin"
 # ค่าตั้งต้นเปิด Xet ไว้เพราะวัดแล้วเร็วกว่าจริง แต่ถ้าเครื่องไหนต่อไปยัง CAS backend
 # ของ Xet ได้ไม่ดี (เร็วช่วงแรกแล้วร่วงเหลือหลักร้อย kB/s แถบ reconstructing ค้างนิ่ง)
 # ให้ตั้ง $env:HF_HUB_DISABLE_XET = "1" ก่อนเรียกสคริปต์นี้ แล้วมันจะไม่ถูกทับ
